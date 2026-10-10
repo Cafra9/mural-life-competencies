@@ -539,6 +539,7 @@ img,video{max-width:100%}
 .adm-row.off .adm-name{text-decoration:line-through;text-decoration-color:var(--muted)}
 .adm-row input{width:22px;height:22px;accent-color:var(--accent);margin:0;cursor:pointer}
 .adm-cb{display:flex;padding:8px;margin:-8px;cursor:pointer}
+.origem-field{margin-top:12px;max-width:420px}
 .adm-row:hover{border-color:var(--accent)}
 .adm-row:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
 .adm-name{font-weight:700;overflow-wrap:anywhere}
@@ -612,6 +613,8 @@ img,video{max-width:100%}
           <div class="turma-pick" role="radiogroup" aria-labelledby="turma-lbl" id="turma-pick"></div>
         </div>
       </div>
+      <label for="f-origem" class="origem-field" id="origem-field" hidden><span>Pasta no mural <span class="small">(só administrador)</span></span>
+        <select id="f-origem"><option value="">Nenhuma – fica solta no mural</option><option value="Weekly News">Weekly News</option><option value="Planejamento">Planejamentos</option></select></label>
     </fieldset>
 
     <fieldset>
@@ -1149,6 +1152,8 @@ function fillForm(d){
   setSeries(seriesOf(d));setTurma(d.turma||"");$("f-prof").value=d.professor||"";
   $("f-nome").value=d.nome||"";$("f-desc").value=d.descricao||"";
   buildComps(d.competencias||[]);setEvItems(d.evidencias||[]);
+  const o=d.origem||"";$("f-origem").value=/^weekly news/i.test(o)?"Weekly News":/^planejamento/i.test(o)?"Planejamento":"";
+  $("origem-field").hidden=!window.__admHdr;
 }
 function openForm(row){
   editing=row||null;formOpenNew=!row;
@@ -1218,6 +1223,11 @@ $("form").addEventListener("submit",async e=>{
       ?{forma:"link",link:i.link,capaId:i.capaId||null,nota:(i.nota||"").trim()}
       :{forma:"arquivo",assetId:i.assetId,nomeArquivo:i.nomeArquivo||"",tipoArquivo:i.tipoArquivo||"",thumbId:i.thumbId||null,nota:(i.nota||"").trim()});
     const doc={...base,modo:modo(),competencias:comps,evidencias:evs,atualizadoEm:new Date().toISOString()};
+    const oAnt=(editing&&editing.origem)||"";
+    if(window.__admHdr){const sel=$("f-origem").value;const grpAnt=/^weekly news/i.test(oAnt)?"Weekly News":/^planejamento/i.test(oAnt)?"Planejamento":"";
+      if(sel)doc.origem=(sel===grpAnt&&oAnt)?oAnt:(sel+" "+(ser.length===1?ser[0]+" ":"")+"2026");}
+    else if(oAnt)doc.origem=oAnt;
+    if(editing&&editing.grupo)doc.grupo=editing.grupo;
     if(editing){await db.collection("atividades").doc(editing.id).set({...doc,autorId:editing.autorId||me.id,criadoEm:editing.criadoEm});focusId=editing.id}
     else{const ref=await db.collection("atividades").add({...doc,autorId:me.id,criadoEm:doc.atualizadoEm});focusId=ref&&ref.id;saveIdent(ser,base.turma,base.professor);lsSet(DRAFT_KEY,null);lsSet(TIP_KEY,true)}
     closeForm();flash("Atividade salva no mural.");render();
