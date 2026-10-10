@@ -105,7 +105,7 @@ legend{font-family:var(--display);font-weight:700;font-size:1.05rem;margin-botto
 .tile .lk-play::after{border-width:6px 0 6px 10px}
 .tile .lk-folder{width:32px;height:23px}
 .tile .badge,.tile .cover-tag{font-size:.6rem;padding:1px 4px;left:4px;bottom:4px}
-.modal{position:fixed;inset:0;background:rgba(10,20,20,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) 16px 24px;overflow-y:auto;z-index:20}
+.modal{position:fixed;inset:0;background:rgba(10,20,20,.55);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) 16px 24px;overflow-y:auto;z-index:170}
 .modal-box{width:100%;max-width:720px;display:flex;flex-direction:column;gap:8px}
 .modal-top{display:flex;justify-content:flex-end}
 @media (prefers-reduced-motion:reduce){.tile{transition:none}.tile:hover{transform:none}}
@@ -538,6 +538,9 @@ img,video{max-width:100%}
 .adm-row.off{background:transparent;opacity:.62}
 .adm-row.off .adm-name{text-decoration:line-through;text-decoration-color:var(--muted)}
 .adm-row input{width:22px;height:22px;accent-color:var(--accent);margin:0;cursor:pointer}
+.adm-cb{display:flex;padding:8px;margin:-8px;cursor:pointer}
+.adm-row:hover{border-color:var(--accent)}
+.adm-row:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
 .adm-name{font-weight:700;overflow-wrap:anywhere}
 .adm-meta{font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
 .adm-tag{font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--soft);color:var(--accent)}
@@ -1165,7 +1168,7 @@ function openForm(row){
   document.body.classList.add("form-open");closeModal();
   window.scrollTo({top:0,behavior:"smooth"});
 }
-function closeForm(){document.body.classList.remove("form-open");formOpenNew=false;clearTimeout(draftT);$("form").hidden=true;$("btn-novo").hidden=false;editing=null;setEvItems([]);$("cancel-confirm").hidden=true}
+function closeForm(){if(window.__admReturn){window.__admReturn=false;setTimeout(()=>openAdmin(),0)}document.body.classList.remove("form-open");formOpenNew=false;clearTimeout(draftT);$("form").hidden=true;$("btn-novo").hidden=false;editing=null;setEvItems([]);$("cancel-confirm").hidden=true}
 $("btn-novo").addEventListener("click",()=>openForm());
 $("btn-cancelar").addEventListener("click",()=>{
   const dirty=editing?true:formHasContent();
@@ -1256,7 +1259,7 @@ function renderMural(){
   });
   const list=base.filter(r=>!compFilter||(r.competencias||[]).some(c=>c.nome===compFilter));
   const feed=$("feed");feed.textContent="";
-  if(openId&&openId!==TRASH_ID&&!confirming){const cur=rows.find(r=>r.id===openId);if(cur)openModal(cur,openCtx);else closeModal()}
+  if(openId&&openId!==TRASH_ID&&!confirming){const cur=rows.find(r=>r.id===openId)||(window.__admDocs&&window.__admDocs.get(openId));if(cur)openModal(cur,openCtx);else closeModal()}
   if(!rows.length){feed.append(el("div",{class:"empty",text:!ready?"Carregando registros…":db?"Nenhuma atividade registrada ainda. Clique em “Incluir atividade” para criar a primeira atividade.":"Não foi possível conectar ao mural. Faça login no Claude e recarregue a página."}));return}
   if(!list.length){feed.append(el("div",{class:"empty",text:"Nenhum registro com esses filtros."}));return}
   const fset=filterSeries($("fs").value);
@@ -1403,7 +1406,7 @@ function drawTrash(){
     el("p",{class:"small",text:"Atividades excluídas ficam aqui. Quem incluiu a atividade pode restaurá-la ou apagá-la de vez."}));
   if(!list.length)wrap.append(el("p",{class:"trash-empty",text:"A lixeira está vazia."}));
   list.forEach(r=>{
-    const mine=me.id&&r.autorId===me.id;
+    const mine=(!!window.__admHdr||me.id&&r.autorId===me.id);
     const row=el("div",{class:"trash-row"},
       el("div",{class:"trash-info"},
         el("strong",{text:r.nome||"Atividade sem nome"}),
@@ -1434,10 +1437,12 @@ function drawTrash(){
   b.append(wrap);fillAuthors(b);
 }
 $("btn-lixeira").addEventListener("click",openTrash);
-function closeModal(){
+function closeModal(semRecarregar){
   if(!openId&&$("modal").hidden)return;
-  openId=null;openCtx=null;confirming=false;$("modal").hidden=true;$("modal-body").textContent="";document.body.style.overflow="";
+  openId=null;openCtx=null;confirming=false;$("modal").hidden=true;$("modal-body").textContent="";
+  const admAberto=!$("adm").hidden;document.body.style.overflow=admAberto?"hidden":"";
   if(lastFocus&&lastFocus.focus)lastFocus.focus();
+  if(admAberto&&!semRecarregar)admLoad(true);
 }
 $("modal-x").addEventListener("click",closeModal);
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
@@ -1474,7 +1479,7 @@ async function fillAuthors(root){
     e.textContent=id===me.id?"por você":(p&&p.name?"por "+p.name:"")});
 }
 function card(r,ctx){
-  const mine=me.id&&r.autorId===me.id;
+  const mine=(!!window.__admHdr||me.id&&r.autorId===me.id);
   const c=el("article",{class:"card",id:"r-"+r.id},
     el("div",{class:"meta"},(seriesOf(r).length||r.turma)?el("span",{class:"tag",text:[seriesLabel(seriesOf(r)),r.turma?(r.turma==="Todos"?"Todas as turmas":"Turma "+r.turma):""].filter(Boolean).join(" · ")}):null,r.criadoEm?el("span",{text:"Registrado em "+fmtDate(r.criadoEm.slice(0,10))}):null,(r.autorId||r.professor)?el("span",{class:"autor","data-uid":r.autorId||"","data-nome":r.professor||""}):null),
     el("h3",{text:r.nome||"Atividade sem nome"}),r.descricao?el("p",{text:r.descricao}):null,
@@ -1506,7 +1511,7 @@ function card(r,ctx){
   if(evUl.children.length)c.append(el("h3",{text:"Registros"}),evUl);
   if(mine){
     const acts=el("div",{class:"actions"});
-    const ed=el("button",{type:"button",text:"Editar"});ed.addEventListener("click",()=>{closeModal();openForm(r)});
+    const ed=el("button",{type:"button",text:"Editar"});ed.addEventListener("click",()=>{closeModal(true);if(!$("adm").hidden){window.__admReturn=true;$("adm").hidden=true;document.body.style.overflow=""}openForm(r)});
     const del=el("button",{type:"button",class:"danger",text:"Excluir"});
     del.addEventListener("click",()=>{
       confirming=true;acts.hidden=true;
@@ -1568,7 +1573,7 @@ function blob(id){
 async function api(acao,body={}){
   let res;
   try{
-    res=await fetch(API,{method:"POST",headers:{"content-type":"application/json","x-mural-codigo":codigo,"x-mural-dispositivo":dispositivo},body:JSON.stringify({acao,...body})});
+    res=await fetch(API,{method:"POST",headers:Object.assign({"content-type":"application/json","x-mural-codigo":codigo,"x-mural-dispositivo":dispositivo},window.__admHdr?{"x-mural-admin":window.__admHdr}:{}),body:JSON.stringify({acao,...body})});
   }catch(e){throw {code:"store_unavailable",message:"rede"}}
   let j={};try{j=await res.json()}catch{}
   if(res.status===401){showGate("O código mudou ou não é mais válido. Digite de novo.");throw {code:"upstream_auth",message:"codigo"}}
@@ -1675,9 +1680,13 @@ function closeAdmin(){
   if(location.hash==="#admin")history.replaceState(null,"",location.pathname+location.search);
   refresh();
 }
-async function admLoad(){
-  $("adm-gate").hidden=true;$("adm-main").hidden=false;$("adm-list").textContent="Carregando…";
-  try{const j=await admApi("adminList");admRows=j.rows||[];admRender()}
+window.__admDocs=new Map();
+async function admLoad(silencioso){
+  $("adm-gate").hidden=true;$("adm-main").hidden=false;if(!silencioso)$("adm-list").textContent="Carregando…";
+  try{const j=await admApi("list",{incluirOcultas:true});window.__admHdr=admCode;Object.assign(urlMap,j.urls||{});
+    window.__admDocs=new Map((j.rows||[]).map(r=>[r.id,r]));
+    admRows=(j.rows||[]).map(d=>({id:d.id,visivel:d.visivel!==false,nome:d.nome||"",serie:d.serie||"",series:d.series||[],turma:d.turma||"",origem:d.origem||"",professor:d.professor||"",criadoEm:d.criadoEm||"",excluidoEm:d.excluidoEm||null,competencias:d.modo==="todas"?SKILLS.map(s=>s.nome):(d.competencias||[]).map(c=>c.nome),registros:(d.evidencias||[]).length}));
+    admRender()}
   catch(e){if(e.code==="admin"){admCode="";try{sessionStorage.removeItem(ADM_KEY);localStorage.removeItem(ADM_KEY)}catch{}openAdmin();$("adm-err").textContent="Senha de administrador incorreta.";$("adm-err").hidden=false}else $("adm-list").textContent="Não foi possível carregar agora. Tente de novo em instantes."}
 }
 function admFiltered(){
@@ -1713,12 +1722,14 @@ function admRow(r){
   const cb=el("input",{type:"checkbox","aria-label":"Mostrar no mural: "+(r.nome||"atividade")});cb.checked=!!r.visivel;
   const dots=el("span",{class:"adm-dots",title:(r.competencias||[]).join(", ")},(r.competencias||[]).map(n=>{const s=skillOf(n);return s?el("i",{style:`background:${s.bg}`}):null}));
   const d=(r.criadoEm||"").slice(0,10);
-  const row=el("label",{class:"adm-row"+(r.visivel?"":" off")},cb,
+  const row=el("div",{class:"adm-row"+(r.visivel?"":" off"),role:"button",tabindex:"0",title:"Abrir atividade"},el("label",{class:"adm-cb",title:r.visivel?"Visível no mural":"Oculta do mural"},cb),
     el("span",{},el("span",{class:"adm-name",text:r.nome||"Atividade sem nome"}),
       el("span",{class:"adm-meta"},el("span",{class:"adm-tag",text:ADM_ORIG[admOrigem(r)]}),r.excluidoEm?el("span",{class:"adm-tag trash",text:"Na lixeira"}):null,
         el("span",{text:[r.turma?(r.turma==="Todos"?"Todas as turmas":"Turma "+r.turma):"",d?fmtDate(d):"",r.registros+(r.registros===1?" registro":" registros")].filter(Boolean).join(" · ")}))),
     el("span",{style:"display:flex;flex-direction:column;align-items:flex-end;gap:6px"},el("span",{class:"adm-state",text:r.visivel?"Visível":"Oculta"}),dots));
   cb.addEventListener("change",()=>admSet([r],cb.checked));
+  const abrir=e=>{if(e.target.closest(".adm-cb"))return;const d=window.__admDocs.get(r.id);if(d)openModal(d)};
+  row.addEventListener("click",abrir);row.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target===row){e.preventDefault();abrir(e)}});
   return row;
 }
 async function admSet(list,v){
@@ -1736,7 +1747,7 @@ function confirmBulk(n){return n<5||window.__admOk===n||(window.__admOk=n,flash(
 $("btn-admin").addEventListener("click",()=>{history.replaceState(null,"","#admin");openAdmin()});
 $("adm-cancel").addEventListener("click",closeAdmin);
 $("adm-close").addEventListener("click",closeAdmin);
-$("adm-sair").addEventListener("click",()=>{admCode="";try{sessionStorage.removeItem(ADM_KEY);localStorage.removeItem(ADM_KEY)}catch{}closeAdmin()});
+$("adm-sair").addEventListener("click",()=>{admCode="";window.__admHdr="";try{sessionStorage.removeItem(ADM_KEY);localStorage.removeItem(ADM_KEY)}catch{}closeAdmin()});
 $("adm-form").addEventListener("submit",async e=>{
   e.preventDefault();const v=$("adm-code").value.trim();if(!v)return;
   const b=$("adm-enter");b.disabled=true;b.textContent="Verificando…";admCode=v;
@@ -1745,6 +1756,7 @@ $("adm-form").addEventListener("submit",async e=>{
   b.disabled=false;b.textContent="Entrar";
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("adm").hidden&&$("viewer").hidden)closeAdmin()});
+if(admCode)admApi("adminCheck").then(()=>{window.__admHdr=admCode;render()}).catch(()=>{});
 if(location.hash==="#admin")setTimeout(openAdmin,0);
 (async()=>{
   if(!codigo){showGate();ready=true;render();return}
