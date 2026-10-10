@@ -515,6 +515,38 @@ img,video{max-width:100%}
 @media (max-width:980px){.grp-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:760px){.grp-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:520px){.grp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* área do administrador */
+.btn-adm{display:inline-flex;align-items:center;gap:6px;color:var(--muted);background:transparent;border:1px solid transparent;padding:6px 10px;border-radius:10px;font-weight:600;margin-right:auto}
+.btn-adm:hover{background:var(--soft);color:var(--fg)}
+.adm{position:fixed;inset:0;z-index:150;background:var(--bg);overflow:auto}
+.adm-gate{min-height:100%;display:flex;align-items:center;justify-content:center;padding:16px}
+.adm-gate .gate-box input{text-transform:none;letter-spacing:.04em}
+.adm-main{max-width:1180px;margin:0 auto;padding:20px 16px 60px;display:flex;flex-direction:column;gap:12px}
+.adm-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.adm-head h2{font-family:var(--display);color:var(--accent);margin:0;font-size:1.5rem}
+.adm-head p{margin:2px 0 0}
+.adm-head-act{display:flex;gap:8px;align-items:center}
+.adm-help{margin:0;color:var(--muted);font-size:.92rem}
+.adm-filters{display:grid;grid-template-columns:repeat(3,minmax(0,170px)) minmax(0,1fr);gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.adm-filters label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:600;color:var(--muted)}
+.adm-bulk{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.adm-bulk .small{margin-right:auto}
+.adm-grp{display:flex;flex-direction:column;gap:6px}
+.adm-grp h3{margin:10px 0 2px;font-family:var(--display);color:var(--accent);font-size:1.05rem;display:flex;gap:8px;align-items:baseline}
+.adm-grp h3 span{font-family:var(--body);font-weight:400;color:var(--muted);font-size:.82rem}
+.adm-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.adm-row.off{background:transparent;opacity:.62}
+.adm-row.off .adm-name{text-decoration:line-through;text-decoration-color:var(--muted)}
+.adm-row input{width:22px;height:22px;accent-color:var(--accent);margin:0;cursor:pointer}
+.adm-name{font-weight:700;overflow-wrap:anywhere}
+.adm-meta{font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px}
+.adm-tag{font-size:.72rem;font-weight:700;border-radius:999px;padding:1px 8px;background:var(--soft);color:var(--accent)}
+.adm-tag.trash{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
+.adm-dots{display:flex;gap:3px;flex-wrap:wrap;max-width:140px;justify-content:flex-end}
+.adm-dots i{width:10px;height:10px;border-radius:50%;display:block}
+.adm-state{font-size:.78rem;font-weight:700;color:var(--accent);white-space:nowrap}
+.adm-row.off .adm-state{color:var(--muted)}
+@media (max-width:760px){.adm-filters{grid-template-columns:1fr 1fr}.adm-q{grid-column:1/-1}.adm-dots{display:none}.adm-head-act{width:100%;justify-content:space-between}}
 /* tela de código da escola */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
 .gate-box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px 24px;max-width:380px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:14px}
@@ -645,6 +677,7 @@ img,video{max-width:100%}
     <div class="empty" id="empty">Carregando registros…</div>
   </div>
   <div class="trash-foot">
+    <button type="button" id="btn-admin" class="btn-adm" title="Área do administrador"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Administrador</button>
     <button type="button" id="btn-lixeira" class="btn-lix" aria-label="Abrir lixeira" title="Atividades excluídas"><svg class="bin" viewBox="0 0 48 48" width="34" height="34" aria-hidden="true">
 <defs><linearGradient id="binG" x1="0" x2="1"><stop offset="0" stop-color="#cfd8dc"/><stop offset=".5" stop-color="#f4f7f8"/><stop offset="1" stop-color="#b0bec5"/></linearGradient></defs>
 <path d="M10 12h28l-3 30a3 3 0 0 1-3 2.7H16a3 3 0 0 1-3-2.7z" fill="url(#binG)" stroke="#78909c" stroke-width="1.5"/>
@@ -657,6 +690,33 @@ img,video{max-width:100%}
   </div>
 </div>
 
+<div class="adm" id="adm" hidden role="dialog" aria-modal="true" aria-labelledby="adm-title">
+  <div class="adm-gate" id="adm-gate">
+    <form class="gate-box" id="adm-form" novalidate>
+      <h1 id="adm-title">Área do administrador</h1>
+      <p>Digite a senha de administrador.</p>
+      <input id="adm-code" type="password" autocomplete="off" aria-label="Senha de administrador">
+      <span class="gate-err" id="adm-err" hidden></span>
+      <button class="primary" type="submit" id="adm-enter">Entrar</button>
+      <button class="link" type="button" id="adm-cancel">Voltar ao mural</button>
+    </form>
+  </div>
+  <div class="adm-main" id="adm-main" hidden>
+    <header class="adm-head">
+      <div><h2>Administração do mural</h2><p class="small" id="adm-count"></p></div>
+      <div class="adm-head-act"><button type="button" class="link" id="adm-sair">Sair da área</button><button type="button" class="primary" id="adm-close">Voltar ao mural</button></div>
+    </header>
+    <p class="adm-help">Marque as atividades que devem aparecer no mural para todos. Desmarcadas ficam escondidas, mas não são apagadas, e você pode voltar a mostrá-las quando quiser. As alterações são salvas na hora.</p>
+    <div class="adm-filters">
+      <label>Série<select id="adm-fs"></select></label>
+      <label>Origem<select id="adm-fo"><option value="">Todas</option><option value="wn">Weekly News</option><option value="pl">Planejamentos</option><option value="prof">Incluídas no mural</option></select></label>
+      <label>Situação<select id="adm-fv"><option value="">Todas</option><option value="1">Visíveis</option><option value="0">Ocultas</option></select></label>
+      <label class="adm-q">Buscar<input id="adm-q" type="search" placeholder="Nome, turma, competência…"></label>
+    </div>
+    <div class="adm-bulk"><span class="small" id="adm-shown"></span><button type="button" id="adm-all-on">Mostrar todas da lista</button><button type="button" id="adm-all-off">Ocultar todas da lista</button></div>
+    <div class="adm-list" id="adm-list"></div>
+  </div>
+</div>
 <div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Imagem ampliada">
   <div class="vw-bar"><span id="vw-cap" class="vw-cap"></span><a id="vw-new" class="vw-new" target="_blank" rel="noopener">Abrir em nova aba</a><button type="button" id="vw-x" class="vw-x" aria-label="Fechar">✕</button></div>
   <div class="vw-stage" id="vw-stage"><button type="button" id="vw-prev" class="vw-nav" aria-label="Anterior">‹</button><img id="vw-img" alt=""><button type="button" id="vw-next" class="vw-nav" aria-label="Próxima">›</button></div>
@@ -1593,6 +1653,99 @@ $("gate-form").addEventListener("submit",async e=>{
   }catch{showGate("Sem conexão com a internet. Tente de novo.")}
   btn.disabled=false;btn.textContent="Entrar";
 });
+// ---------- área do administrador ----------
+const ADM_KEY="mural.admin";
+let admCode=(()=>{try{return sessionStorage.getItem(ADM_KEY)||localStorage.getItem(ADM_KEY)||""}catch{return ""}})();
+let admRows=[];
+async function admApi(acao,body={}){
+  const res=await fetch(API,{method:"POST",headers:{"content-type":"application/json","x-mural-admin":admCode,"x-mural-dispositivo":dispositivo},body:JSON.stringify({acao,...body})});
+  let j={};try{j=await res.json()}catch{}
+  if(res.status===401)throw {code:"admin"};
+  if(!res.ok)throw {code:j.erro||"falha"};
+  return j;
+}
+function admOrigem(r){const o=r.origem||"";return /^weekly news/i.test(o)?"wn":/^planejamento/i.test(o)?"pl":"prof"}
+const ADM_ORIG={wn:"Weekly News",pl:"Planejamento",prof:"Incluída no mural"};
+function openAdmin(){
+  $("adm").hidden=false;document.body.style.overflow="hidden";
+  if(admCode){admLoad()}else{$("adm-gate").hidden=false;$("adm-main").hidden=true;$("adm-err").hidden=true;$("adm-code").value="";setTimeout(()=>$("adm-code").focus(),30)}
+}
+function closeAdmin(){
+  $("adm").hidden=true;document.body.style.overflow="";
+  if(location.hash==="#admin")history.replaceState(null,"",location.pathname+location.search);
+  refresh();
+}
+async function admLoad(){
+  $("adm-gate").hidden=true;$("adm-main").hidden=false;$("adm-list").textContent="Carregando…";
+  try{const j=await admApi("adminList");admRows=j.rows||[];admRender()}
+  catch(e){if(e.code==="admin"){admCode="";try{sessionStorage.removeItem(ADM_KEY);localStorage.removeItem(ADM_KEY)}catch{}openAdmin();$("adm-err").textContent="Senha de administrador incorreta.";$("adm-err").hidden=false}else $("adm-list").textContent="Não foi possível carregar agora. Tente de novo em instantes."}
+}
+function admFiltered(){
+  const fs=$("adm-fs").value,fo=$("adm-fo").value,fv=$("adm-fv").value,q=$("adm-q").value.trim().toLowerCase();
+  return admRows.filter(r=>{
+    const sr=r.series&&r.series.length?r.series:(r.serie?[r.serie]:[]);
+    if(fs&&!(fs==="Todas"?isAll(sr):sr.includes(fs)))return false;
+    if(fo&&admOrigem(r)!==fo)return false;
+    if(fv&&String(+!!r.visivel)!==fv)return false;
+    if(q&&!(r.nome+" "+r.turma+" "+r.professor+" "+(r.competencias||[]).join(" ")+" "+sr.join(" ")).toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+function admRender(){
+  const vis=admRows.filter(r=>r.visivel).length;
+  $("adm-count").textContent=vis+" de "+admRows.length+" atividades visíveis no mural";
+  const list=admFiltered();
+  $("adm-shown").textContent=list.length+(list.length===1?" atividade na lista":" atividades na lista");
+  const box=$("adm-list");box.textContent="";
+  if(!list.length){box.append(el("p",{class:"small",text:"Nenhuma atividade com esses filtros."}));return}
+  const order=[TODAS_SERIES,...SERIES,""];
+  const groups=new Map();
+  list.forEach(r=>{const sr=r.series&&r.series.length?r.series:(r.serie?[r.serie]:[]);const k=isAll(sr)?TODAS_SERIES:(sr[0]||"");if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r)});
+  order.filter(k=>groups.has(k)).forEach(k=>{
+    const rs=groups.get(k).sort((a,b)=>admOrigem(a).localeCompare(admOrigem(b))||String(b.criadoEm).localeCompare(String(a.criadoEm)));
+    const nv=rs.filter(r=>r.visivel).length;
+    const g=el("section",{class:"adm-grp"},el("h3",{},k===TODAS_SERIES?"Todas as séries":(k||"Sem série"),el("span",{text:nv+" de "+rs.length+" visíveis"})));
+    rs.forEach(r=>g.append(admRow(r)));
+    box.append(g);
+  });
+}
+function admRow(r){
+  const cb=el("input",{type:"checkbox","aria-label":"Mostrar no mural: "+(r.nome||"atividade")});cb.checked=!!r.visivel;
+  const dots=el("span",{class:"adm-dots",title:(r.competencias||[]).join(", ")},(r.competencias||[]).map(n=>{const s=skillOf(n);return s?el("i",{style:`background:${s.bg}`}):null}));
+  const d=(r.criadoEm||"").slice(0,10);
+  const row=el("label",{class:"adm-row"+(r.visivel?"":" off")},cb,
+    el("span",{},el("span",{class:"adm-name",text:r.nome||"Atividade sem nome"}),
+      el("span",{class:"adm-meta"},el("span",{class:"adm-tag",text:ADM_ORIG[admOrigem(r)]}),r.excluidoEm?el("span",{class:"adm-tag trash",text:"Na lixeira"}):null,
+        el("span",{text:[r.turma?(r.turma==="Todos"?"Todas as turmas":"Turma "+r.turma):"",d?fmtDate(d):"",r.registros+(r.registros===1?" registro":" registros")].filter(Boolean).join(" · ")}))),
+    el("span",{style:"display:flex;flex-direction:column;align-items:flex-end;gap:6px"},el("span",{class:"adm-state",text:r.visivel?"Visível":"Oculta"}),dots));
+  cb.addEventListener("change",()=>admSet([r],cb.checked));
+  return row;
+}
+async function admSet(list,v){
+  const ids=list.map(r=>r.id);const prev=list.map(r=>r.visivel);
+  list.forEach(r=>r.visivel=v);admRender();
+  try{await admApi("adminSetVisivel",{ids,visivel:v});flash(ids.length===1?(v?"Atividade visível no mural.":"Atividade oculta do mural."):(ids.length+(v?" atividades visíveis no mural.":" atividades ocultas do mural.")))}
+  catch{list.forEach((r,i)=>r.visivel=prev[i]);admRender();flash("Não foi possível salvar agora. Tente de novo.")}
+}
+$("adm-fs").append(el("option",{value:"",text:"Todas"}),el("option",{value:TODAS_SERIES,text:"Só “Todas as séries”"}),...SERIES.map(s=>el("option",{value:s,text:s})));
+["adm-fs","adm-fo","adm-fv"].forEach(id=>$(id).addEventListener("change",admRender));
+$("adm-q").addEventListener("input",admRender);
+$("adm-all-on").addEventListener("click",()=>{const l=admFiltered().filter(r=>!r.visivel);if(l.length)admSet(l,true)});
+$("adm-all-off").addEventListener("click",()=>{const l=admFiltered().filter(r=>r.visivel);if(l.length&&confirmBulk(l.length))admSet(l,false)});
+function confirmBulk(n){return n<5||window.__admOk===n||(window.__admOk=n,flash("Toque de novo em “Ocultar todas da lista” para confirmar ("+n+" atividades)."),false)}
+$("btn-admin").addEventListener("click",()=>{history.replaceState(null,"","#admin");openAdmin()});
+$("adm-cancel").addEventListener("click",closeAdmin);
+$("adm-close").addEventListener("click",closeAdmin);
+$("adm-sair").addEventListener("click",()=>{admCode="";try{sessionStorage.removeItem(ADM_KEY);localStorage.removeItem(ADM_KEY)}catch{}closeAdmin()});
+$("adm-form").addEventListener("submit",async e=>{
+  e.preventDefault();const v=$("adm-code").value.trim();if(!v)return;
+  const b=$("adm-enter");b.disabled=true;b.textContent="Verificando…";admCode=v;
+  try{await admApi("adminCheck");try{localStorage.setItem(ADM_KEY,v)}catch{}admLoad()}
+  catch(x){admCode="";$("adm-err").textContent=x.code==="admin"?"Senha de administrador incorreta.":"Sem conexão. Tente de novo.";$("adm-err").hidden=false}
+  b.disabled=false;b.textContent="Entrar";
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("adm").hidden&&$("viewer").hidden)closeAdmin()});
+if(location.hash==="#admin")setTimeout(openAdmin,0);
 (async()=>{
   if(!codigo){showGate();ready=true;render();return}
   startApp();
