@@ -484,6 +484,19 @@ img,video{max-width:100%}
   .board-grid{gap:6px}
 }
 
+/* visualizador de imagens */
+.zoom-btn{display:block;padding:0;border:none;background:none;cursor:zoom-in;min-height:0!important;max-width:100%}
+.zoom-btn:focus-visible{outline:3px solid var(--mark);outline-offset:2px;border-radius:8px}
+.viewer{position:fixed;inset:0;z-index:200;background:rgba(10,16,17,.97);display:flex;flex-direction:column}
+.vw-bar{display:flex;align-items:center;gap:12px;padding:10px 12px;color:#fff}
+.vw-cap{flex:1;min-width:0;font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vw-new{color:#fff;font-size:.85rem;white-space:nowrap}
+.vw-x{background:rgba(255,255,255,.12);color:#fff;border:none;width:40px;height:40px;border-radius:50%;font-size:1.1rem;cursor:pointer}
+.vw-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:0 8px 16px}
+.vw-stage img{max-width:min(100%,1400px);max-height:100%;object-fit:contain;border-radius:6px;background:#fff;min-width:0}
+.vw-nav{flex:none;background:rgba(255,255,255,.12);color:#fff;border:none;width:44px;height:64px;border-radius:10px;font-size:2rem;line-height:1;cursor:pointer}
+.vw-nav:hover,.vw-x:hover{background:rgba(255,255,255,.22)}
+@media (max-width:600px){.vw-nav{position:absolute;top:50%;transform:translateY(-50%);width:38px;height:56px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.35);z-index:2}#vw-prev{left:6px}#vw-next{right:6px}.vw-stage{position:relative;padding:0 4px 12px}.vw-new{font-size:.8rem}}
 /* pastas (ex.: Weekly News) */
 .tile-group{border:1.5px solid var(--accent)}
 .grp-stack{position:relative;background:var(--soft);overflow:hidden}
@@ -644,6 +657,10 @@ img,video{max-width:100%}
   </div>
 </div>
 
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Imagem ampliada">
+  <div class="vw-bar"><span id="vw-cap" class="vw-cap"></span><a id="vw-new" class="vw-new" target="_blank" rel="noopener">Abrir em nova aba</a><button type="button" id="vw-x" class="vw-x" aria-label="Fechar">✕</button></div>
+  <div class="vw-stage" id="vw-stage"><button type="button" id="vw-prev" class="vw-nav" aria-label="Anterior">‹</button><img id="vw-img" alt=""><button type="button" id="vw-next" class="vw-nav" aria-label="Próxima">›</button></div>
+</div>
 <div class="modal" id="modal" hidden>
   <div class="modal-box" role="dialog" aria-modal="true" aria-label="Registro da atividade">
     <div class="modal-top"><button type="button" id="modal-x">Fechar</button></div>
@@ -1364,7 +1381,22 @@ function closeModal(){
 }
 $("modal-x").addEventListener("click",closeModal);
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&openId)closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&openId&&$("viewer").hidden)closeModal()});
+// ---------- visualizador de imagens ----------
+let vwList=[],vwIdx=0,vwPrevFocus=null;
+function openViewer(list,i){if(!list.length)return;vwList=list;vwIdx=Math.max(0,i);vwPrevFocus=document.activeElement;$("viewer").hidden=false;drawViewer();$("vw-x").focus()}
+function drawViewer(){const it=vwList[vwIdx];const u=blob(it.id);$("vw-img").src=u;$("vw-img").alt=it.nome||"Imagem";$("vw-cap").textContent=it.nome+(vwList.length>1?"  ·  "+(vwIdx+1)+" de "+vwList.length:"");
+  $("vw-new").href=u;$("vw-prev").hidden=$("vw-next").hidden=vwList.length<2}
+function closeViewer(){$("viewer").hidden=true;$("vw-img").removeAttribute("src");if(vwPrevFocus&&vwPrevFocus.focus)vwPrevFocus.focus()}
+function stepViewer(d){vwIdx=(vwIdx+d+vwList.length)%vwList.length;drawViewer()}
+$("vw-x").addEventListener("click",closeViewer);
+$("vw-prev").addEventListener("click",e=>{e.stopPropagation();stepViewer(-1)});
+$("vw-next").addEventListener("click",e=>{e.stopPropagation();stepViewer(1)});
+$("viewer").addEventListener("click",e=>{if(e.target.id==="viewer"||e.target.id==="vw-stage")closeViewer()});
+document.addEventListener("keydown",e=>{if($("viewer").hidden)return;
+  if(e.key==="Escape"){e.preventDefault();closeViewer()}else if(e.key==="ArrowLeft")stepViewer(-1);else if(e.key==="ArrowRight")stepViewer(1)});
+let vwX=null;$("viewer").addEventListener("touchstart",e=>{vwX=e.touches[0].clientX},{passive:true});
+$("viewer").addEventListener("touchend",e=>{if(vwX==null)return;const dx=e.changedTouches[0].clientX-vwX;vwX=null;if(Math.abs(dx)>50&&vwList.length>1)stepViewer(dx<0?1:-1)});
 function comentariosLC(r){
   const cs=(r.competencias||[]).filter(x=>x.como);
   if(!cs.length)return null;
@@ -1398,7 +1430,12 @@ function card(r,ctx){
       li.append(el("a",{href:u,target:"_blank",rel:"noopener",class:"ev-open"},v.capaId?el("span",{class:"cover-mini big"},el("img",{src:blob(v.capaId),alt:"Capa do link"}),el("span",{class:"cover-tag",text:linkInfo(u).servico||"Link"})):linkCard(u,"lc-mid")),el("a",{href:u,target:"_blank",rel:"noopener",class:"small ev-url",text:v.link}));
     }else if(v.assetId){
       const src=blob(v.assetId),t=v.tipoArquivo||"";
-      if(t.startsWith("image/"))li.append(el("img",{class:"thumb",src,alt:v.nomeArquivo||"Foto do registro"}));
+      if(t.startsWith("image/")){
+        const b=el("button",{type:"button",class:"zoom-btn","aria-label":"Ampliar "+(v.nomeArquivo||"imagem")},el("img",{class:"thumb",src,alt:v.nomeArquivo||"Foto do registro"}));
+        b.addEventListener("click",()=>{const imgs=(r.evidencias||[]).filter(x=>x.assetId&&(x.tipoArquivo||"").startsWith("image/"));
+          openViewer(imgs.map(x=>({id:x.assetId,nome:x.nota||x.nomeArquivo||""})),imgs.indexOf(v))});
+        li.append(b);
+      }
       else if(t.startsWith("video/")){const vd=el("video",{class:"thumb",src,controls:""});li.append(vd)}
       else if(v.thumbId)li.append(el("a",{href:src,target:"_blank",rel:"noopener",class:"ev-open"},el("span",{class:"ev-pdfthumb big"},el("img",{src:blob(v.thumbId),alt:"Primeira página de "+(v.nomeArquivo||"PDF")}),el("span",{class:"badge",text:"PDF"}))),el("a",{href:src,target:"_blank",rel:"noopener",class:"small ev-url",text:(v.nomeArquivo||"Abrir PDF")}));
       else li.append(el("a",{href:src,target:"_blank",rel:"noopener",text:v.nomeArquivo||"Abrir arquivo"}));
