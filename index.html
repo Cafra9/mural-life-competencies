@@ -1229,7 +1229,7 @@ function renderMural(){
 const GROUPS_KEY="mural.gruposAbertos";
 const openGroups=new Set(lsGet(GROUPS_KEY)||[]);
 function saveGroups(){lsSet(GROUPS_KEY,[...openGroups])}
-function grupoOf(r){if(r.grupo)return r.grupo;return /^weekly news/i.test(r.origem||"")?"Weekly News":null}
+function grupoOf(r){if(r.grupo)return r.grupo;const o=r.origem||"";if(/^weekly news/i.test(o))return "Weekly News";if(/^planejamento/i.test(o))return "Planejamentos";return null}
 function groupRange(rs){const ds=rs.map(r=>(r.criadoEm||"").slice(0,10)).filter(Boolean).sort();if(!ds.length)return"";
   const f=d=>{const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y};return ds[0]===ds[ds.length-1]?f(ds[0]):f(ds[0])+" a "+f(ds[ds.length-1])}
 function groupComps(rs){const c={};rs.forEach(r=>(r.modo==="todas"?SKILLS.map(s=>s.nome):(r.competencias||[]).map(x=>x.nome)).forEach(n=>c[n]=(c[n]||0)+1));
