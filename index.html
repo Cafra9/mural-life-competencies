@@ -484,6 +484,24 @@ img,video{max-width:100%}
   .board-grid{gap:6px}
 }
 
+/* pastas (ex.: Weekly News) */
+.tile-group{border:1.5px solid var(--accent)}
+.grp-stack{position:relative;background:var(--soft);overflow:hidden}
+.grp-card{position:absolute;width:62%;aspect-ratio:16/9;object-fit:cover;object-position:top;border-radius:4px;border:1px solid var(--line);background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.grp-card.c0{left:6%;top:10%;z-index:3}
+.grp-card.c1{left:20%;top:22%;z-index:2;opacity:.95}
+.grp-card.c2{left:33%;top:34%;z-index:1;opacity:.9}
+.grp-count{position:absolute;right:6px;bottom:6px;z-index:4;background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:1px 8px;font-size:.75rem;font-weight:700}
+.grp-open{color:var(--accent);font-weight:600}
+.grp-panel{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;border:1.5px solid var(--accent);border-radius:10px;padding:8px;background:var(--surface)}
+.grp-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.grp-head strong{font-family:var(--display);color:var(--accent)}
+.grp-close{margin-left:auto;font-weight:600}
+.grp-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:1180px){.grp-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (max-width:980px){.grp-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:760px){.grp-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.grp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* tela de código da escola */
 .gate{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
 .gate-box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px 24px;max-width:380px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:14px}
@@ -1173,11 +1191,55 @@ function renderMural(){
       if(s==="")return !sr.length;
       return !isAll(sr)&&sr.includes(s);});
     if(!items.length)return;
-    feed.append(el("section",{class:"board k"+Math.min(items.length,6)+(s===TODAS_SERIES?" board-all":"")},
+    // atividades agrupadas (ex.: Weekly News) viram uma pasta no mural
+    const soltas=[],grupos=new Map();
+    items.forEach(r=>{const g=grupoOf(r);if(!g)soltas.push(r);else{if(!grupos.has(g))grupos.set(g,[]);grupos.get(g).push(r)}});
+    if(focusId){const fr=items.find(r=>r.id===focusId);const fg=fr&&grupoOf(fr);if(fg)openGroups.add(s+"|"+fg)}
+    const cells=[];let anyOpen=false;
+    grupos.forEach((rs,g)=>{
+      rs.sort((a,b)=>String(b.criadoEm||"").localeCompare(String(a.criadoEm||"")));
+      const key=s+"|"+g,open=openGroups.has(key);if(open)anyOpen=true;
+      cells.push(open?groupOpen(rs,g,key,s):groupTile(rs,g,key));
+    });
+    soltas.forEach(r=>cells.push(tile(r,s)));
+    const nVis=anyOpen?6:cells.length;
+    feed.append(el("section",{class:"board k"+Math.min(nVis,6)+(s===TODAS_SERIES?" board-all":"")},
       el("div",{class:"board-head"},el("h2",{text:s===TODAS_SERIES?"Todas as séries":s||"Sem série"}),el("span",{class:"small",text:items.length+(items.length===1?" atividade":" atividades")})),
-      el("div",{class:"board-grid"},items.map(r=>tile(r,s)))));
+      el("div",{class:"board-grid"},cells)));
   });
   focusNew();
+}
+const GROUPS_KEY="mural.gruposAbertos";
+const openGroups=new Set(lsGet(GROUPS_KEY)||[]);
+function saveGroups(){lsSet(GROUPS_KEY,[...openGroups])}
+function grupoOf(r){if(r.grupo)return r.grupo;return /^weekly news/i.test(r.origem||"")?"Weekly News":null}
+function groupRange(rs){const ds=rs.map(r=>(r.criadoEm||"").slice(0,10)).filter(Boolean).sort();if(!ds.length)return"";
+  const f=d=>{const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y};return ds[0]===ds[ds.length-1]?f(ds[0]):f(ds[0])+" a "+f(ds[ds.length-1])}
+function groupComps(rs){const c={};rs.forEach(r=>(r.modo==="todas"?SKILLS.map(s=>s.nome):(r.competencias||[]).map(x=>x.nome)).forEach(n=>c[n]=(c[n]||0)+1));
+  return SKILLS.filter(s=>c[s.nome]).map(s=>({...s,n:c[s.nome]}))}
+function groupThumb(r){const v=(r.evidencias||[]).find(v=>v.assetId&&(v.tipoArquivo||"").startsWith("image/"))||(r.evidencias||[]).find(v=>v.thumbId);
+  return v?blob(v.thumbId&&!(v.tipoArquivo||"").startsWith("image/")?v.thumbId:v.assetId):null}
+function groupTile(rs,g,key){
+  const thumbs=rs.map(groupThumb).filter(Boolean).slice(0,3);
+  const comps=groupComps(rs);
+  const t=el("button",{type:"button",class:"tile tile-group","aria-expanded":"false",title:"Abrir "+g},
+    el("span",{class:"tile-img grp-stack"},thumbs.length?thumbs.map((u,i)=>el("img",{src:u,alt:"",class:"grp-card c"+i})):el("span",{class:"grp-empty"}),
+      el("span",{class:"grp-count",text:String(rs.length)})),
+    el("span",{class:"tile-body"},
+      el("span",{class:"tag",text:"Pasta"}),
+      el("span",{class:"tile-title",text:g}),
+      el("span",{class:"tile-autor",text:rs.length+(rs.length===1?" atividade":" atividades")}),
+      comps.length?el("span",{class:"stats"},el("span",{class:"lc-dots",title:comps.map(c=>c.nome+" ("+c.n+")").join(", ")},comps.map(c=>el("span",{class:"lc-dot",style:`background:${c.bg}`})))):null,
+      el("span",{class:"tile-foot"},el("span",{text:groupRange(rs)}),el("span",{class:"grp-open",text:"Abrir ▸"}))));
+  t.addEventListener("click",()=>{openGroups.add(key);saveGroups();render()});
+  return t;
+}
+function groupOpen(rs,g,key,s){
+  const close=el("button",{type:"button",class:"link grp-close","aria-expanded":"true",text:"Recolher ▴"});
+  close.addEventListener("click",()=>{openGroups.delete(key);saveGroups();render()});
+  return el("div",{class:"grp-panel"},
+    el("div",{class:"grp-head"},el("strong",{text:g}),el("span",{class:"small",text:rs.length+(rs.length===1?" atividade":" atividades")+" · "+groupRange(rs)}),close),
+    el("div",{class:"grp-grid"},rs.map(r=>tile(r,s))));
 }
 let focusId=null;
 function focusNew(){
