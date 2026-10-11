@@ -613,8 +613,12 @@ img,video{max-width:100%}
           <div class="turma-pick" role="radiogroup" aria-labelledby="turma-lbl" id="turma-pick"></div>
         </div>
       </div>
-      <label for="f-origem" class="origem-field" id="origem-field" hidden><span>Pasta no mural <span class="small">(só administrador)</span></span>
-        <select id="f-origem"><option value="">Nenhuma – fica solta no mural</option><option value="Weekly News">Weekly News</option><option value="Planejamento">Planejamentos</option></select></label>
+      <div class="origem-field" id="origem-field">
+        <label for="f-grupo"><span>Grupo no mural <span class="small">(opcional – junta atividades parecidas numa mesma pasta)</span></span>
+          <select id="f-grupo"></select></label>
+        <label for="f-grupo-novo" id="grupo-novo-wrap" hidden style="margin-top:8px"><span>Nome do novo grupo</span>
+          <input id="f-grupo-novo" type="text" maxlength="40" placeholder="Ex.: Mural, Booklet, Projetos" autocomplete="off"></label>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -715,7 +719,7 @@ img,video{max-width:100%}
     <p class="adm-help">Marque as atividades que devem aparecer no mural para todos. Desmarcadas ficam escondidas, mas não são apagadas, e você pode voltar a mostrá-las quando quiser. As alterações são salvas na hora.</p>
     <div class="adm-filters">
       <label>Série<select id="adm-fs"></select></label>
-      <label>Origem<select id="adm-fo"><option value="">Todas</option><option value="wn">Weekly News</option><option value="pl">Planejamentos</option><option value="prof">Incluídas no mural</option></select></label>
+      <label>Grupo<select id="adm-fo"><option value="">Todos</option></select></label>
       <label>Situação<select id="adm-fv"><option value="">Todas</option><option value="1">Visíveis</option><option value="0">Ocultas</option></select></label>
       <label class="adm-q">Buscar<input id="adm-q" type="search" placeholder="Nome, turma, competência…"></label>
     </div>
@@ -1152,8 +1156,7 @@ function fillForm(d){
   setSeries(seriesOf(d));setTurma(d.turma||"");$("f-prof").value=d.professor||"";
   $("f-nome").value=d.nome||"";$("f-desc").value=d.descricao||"";
   buildComps(d.competencias||[]);setEvItems(d.evidencias||[]);
-  const o=d.origem||"";$("f-origem").value=/^weekly news/i.test(o)?"Weekly News":/^planejamento/i.test(o)?"Planejamento":"";
-  $("origem-field").hidden=!window.__admHdr;
+  fillGrupo(grupoOf(d)||"");
 }
 function openForm(row){
   editing=row||null;formOpenNew=!row;
@@ -1224,10 +1227,10 @@ $("form").addEventListener("submit",async e=>{
       :{forma:"arquivo",assetId:i.assetId,nomeArquivo:i.nomeArquivo||"",tipoArquivo:i.tipoArquivo||"",thumbId:i.thumbId||null,nota:(i.nota||"").trim()});
     const doc={...base,modo:modo(),competencias:comps,evidencias:evs,atualizadoEm:new Date().toISOString()};
     const oAnt=(editing&&editing.origem)||"";
-    if(window.__admHdr){const sel=$("f-origem").value;const grpAnt=/^weekly news/i.test(oAnt)?"Weekly News":/^planejamento/i.test(oAnt)?"Planejamento":"";
-      if(sel)doc.origem=(sel===grpAnt&&oAnt)?oAnt:(sel+" "+(ser.length===1?ser[0]+" ":"")+"2026");}
-    else if(oAnt)doc.origem=oAnt;
-    if(editing&&editing.grupo)doc.grupo=editing.grupo;
+    if(oAnt)doc.origem=oAnt;
+    let gSel=$("f-grupo").value;
+    if(gSel==="__novo"){gSel=$("f-grupo-novo").value.trim().replace(/\s+/g," ");if(!gSel)throw {user:"Digite o nome do novo grupo ou escolha outro na lista."};const ex=allGrupos().find(g=>g.toLowerCase()===gSel.toLowerCase());if(ex)gSel=ex}
+    if(gSel)doc.grupo=gSel;else if(grupoOf({origem:oAnt}))doc.grupo="-";
     if(editing){await db.collection("atividades").doc(editing.id).set({...doc,autorId:editing.autorId||me.id,criadoEm:editing.criadoEm});focusId=editing.id}
     else{const ref=await db.collection("atividades").add({...doc,autorId:me.id,criadoEm:doc.atualizadoEm});focusId=ref&&ref.id;saveIdent(ser,base.turma,base.professor);lsSet(DRAFT_KEY,null);lsSet(TIP_KEY,true)}
     closeForm();flash("Atividade salva no mural.");render();
@@ -1302,7 +1305,13 @@ function renderMural(){
 const GROUPS_KEY="mural.gruposAbertos";
 const openGroups=new Set(lsGet(GROUPS_KEY)||[]);
 function saveGroups(){lsSet(GROUPS_KEY,[...openGroups])}
-function grupoOf(r){if(r.grupo)return r.grupo;const o=r.origem||"";if(/^weekly news/i.test(o))return "Weekly News";if(/^planejamento/i.test(o))return "Planejamentos";return null}
+function grupoOf(r){if(r.grupo==="-")return null;if(r.grupo)return r.grupo;const o=r.origem||"";if(/^weekly news/i.test(o))return "Weekly News";if(/^planejamento/i.test(o))return "Planejamentos";return null}
+const GRUPOS_BASE=["Weekly News","Planejamentos","Mural","Booklet"];
+function allGrupos(){const set=new Map();const add=g=>{if(g&&!set.has(g.toLowerCase()))set.set(g.toLowerCase(),g)};GRUPOS_BASE.forEach(add);rows.forEach(r=>add(grupoOf(r)));if(window.__admDocs)window.__admDocs.forEach(r=>add(grupoOf(r)));return [...set.values()].sort((a,b)=>a.localeCompare(b,"pt"))}
+function fillGrupo(atual){const sel=$("f-grupo");sel.textContent="";const gs=allGrupos();if(atual&&!gs.includes(atual))gs.push(atual);
+  sel.append(el("option",{value:"",text:"Nenhum – fica solta no mural"}));gs.forEach(g=>sel.append(el("option",{value:g,text:g})));sel.append(el("option",{value:"__novo",text:"+ Criar novo grupo…"}));
+  sel.value=atual||"";$("f-grupo-novo").value="";$("grupo-novo-wrap").hidden=true}
+$("f-grupo").addEventListener("change",()=>{const n=$("f-grupo").value==="__novo";$("grupo-novo-wrap").hidden=!n;if(n)$("f-grupo-novo").focus()});
 function groupRange(rs){const ds=rs.map(r=>(r.criadoEm||"").slice(0,10)).filter(Boolean).sort();if(!ds.length)return"";
   const f=d=>{const[y,m,dd]=d.split("-");return dd+"/"+m+"/"+y};return ds[0]===ds[ds.length-1]?f(ds[0]):f(ds[0])+" a "+f(ds[ds.length-1])}
 function groupComps(rs){const c={};rs.forEach(r=>(r.modo==="todas"?SKILLS.map(s=>s.nome):(r.competencias||[]).map(x=>x.nome)).forEach(n=>c[n]=(c[n]||0)+1));
@@ -1679,8 +1688,9 @@ async function admApi(acao,body={}){
   if(!res.ok)throw {code:j.erro||"falha"};
   return j;
 }
-function admOrigem(r){const o=r.origem||"";return /^weekly news/i.test(o)?"wn":/^planejamento/i.test(o)?"pl":"prof"}
-const ADM_ORIG={wn:"Weekly News",pl:"Planejamento",prof:"Incluída no mural"};
+function admOrigem(r){return grupoOf(r)||""}
+const ADM_ORIG=new Proxy({},{get:(_,k)=>k?"Grupo: "+k:"Sem grupo"});
+function admFillFo(){const sel=$("adm-fo"),v=sel.value;sel.textContent="";sel.append(el("option",{value:"",text:"Todos"}));const gs=[...new Set(admRows.map(admOrigem).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pt"));gs.forEach(g=>sel.append(el("option",{value:g,text:g})));sel.append(el("option",{value:"__sem",text:"Sem grupo"}));sel.value=[...sel.options].some(o=>o.value===v)?v:""}
 function openAdmin(){
   $("adm").hidden=false;document.body.style.overflow="hidden";
   if(admCode){admLoad()}else{$("adm-gate").hidden=false;$("adm-main").hidden=true;$("adm-err").hidden=true;$("adm-code").value="";setTimeout(()=>$("adm-code").focus(),30)}
@@ -1695,8 +1705,8 @@ async function admLoad(silencioso){
   $("adm-gate").hidden=true;$("adm-main").hidden=false;if(!silencioso)$("adm-list").textContent="Carregando…";
   try{const j=await admApi("list",{incluirOcultas:true});window.__admHdr=admCode;Object.assign(urlMap,j.urls||{});
     window.__admDocs=new Map((j.rows||[]).map(r=>[r.id,r]));
-    admRows=(j.rows||[]).map(d=>({id:d.id,visivel:d.visivel!==false,nome:d.nome||"",serie:d.serie||"",series:d.series||[],turma:d.turma||"",origem:d.origem||"",professor:d.professor||"",criadoEm:d.criadoEm||"",excluidoEm:d.excluidoEm||null,competencias:d.modo==="todas"?SKILLS.map(s=>s.nome):(d.competencias||[]).map(c=>c.nome),registros:(d.evidencias||[]).length}));
-    admRender()}
+    admRows=(j.rows||[]).map(d=>({id:d.id,visivel:d.visivel!==false,nome:d.nome||"",serie:d.serie||"",series:d.series||[],turma:d.turma||"",origem:d.origem||"",grupo:d.grupo||"",professor:d.professor||"",criadoEm:d.criadoEm||"",excluidoEm:d.excluidoEm||null,competencias:d.modo==="todas"?SKILLS.map(s=>s.nome):(d.competencias||[]).map(c=>c.nome),registros:(d.evidencias||[]).length}));
+    admFillFo();admRender()}
   catch(e){if(e.code==="admin"){admCode="";try{sessionStorage.removeItem(ADM_KEY);localStorage.removeItem(ADM_KEY)}catch{}openAdmin();$("adm-err").textContent="Senha de administrador incorreta.";$("adm-err").hidden=false}else $("adm-list").textContent="Não foi possível carregar agora. Tente de novo em instantes."}
 }
 function admFiltered(){
@@ -1704,7 +1714,7 @@ function admFiltered(){
   return admRows.filter(r=>{
     const sr=r.series&&r.series.length?r.series:(r.serie?[r.serie]:[]);
     if(fs&&!(fs==="Todas"?isAll(sr):sr.includes(fs)))return false;
-    if(fo&&admOrigem(r)!==fo)return false;
+    if(fo&&(fo==="__sem"?admOrigem(r)!=="":admOrigem(r)!==fo))return false;
     if(fv&&String(+!!r.visivel)!==fv)return false;
     if(q&&!(r.nome+" "+r.turma+" "+r.professor+" "+(r.competencias||[]).join(" ")+" "+sr.join(" ")).toLowerCase().includes(q))return false;
     return true;
