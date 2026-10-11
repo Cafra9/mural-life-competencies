@@ -506,6 +506,9 @@ img,video{max-width:100%}
 .grp-card.c2{left:33%;top:34%;z-index:1;opacity:.9}
 .grp-count{position:absolute;right:6px;bottom:6px;z-index:4;background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:1px 8px;font-size:.75rem;font-weight:700}
 .grp-open{color:var(--accent);font-weight:600}
+.grp-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.grp-ico{width:34%;aspect-ratio:4/3;border-radius:6px;background:var(--accent);opacity:.22;position:relative}
+.grp-ico::before{content:"";position:absolute;left:0;top:-14%;width:42%;height:22%;border-radius:4px 4px 0 0;background:inherit}
 .grp-panel{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;border:1.5px solid var(--accent);border-radius:10px;padding:8px;background:var(--surface)}
 .grp-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .grp-head strong{font-family:var(--display);color:var(--accent)}
@@ -1306,7 +1309,7 @@ function renderMural(){
     // atividades agrupadas (ex.: Weekly News) viram uma pasta no mural
     const soltas=[],grupos=new Map();
     items.forEach(r=>{const g=grupoOf(r);if(!g)soltas.push(r);else{if(!grupos.has(g))grupos.set(g,[]);grupos.get(g).push(r)}});
-    if(focusId){const fr=items.find(r=>r.id===focusId);const fg=fr&&grupoOf(fr);if(fg)openGroups.add(s+"|"+fg)}
+    if(focusId){const fr=items.find(r=>r.id===focusId);const fg=fr&&grupoOf(fr);if(fg&&!openGroups.has(s+"|"+fg))focusGrp=fg}
     const cells=[];let anyOpen=false;
     grupos.forEach((rs,g)=>{
       rs.sort((a,b)=>String(b.criadoEm||"").localeCompare(String(a.criadoEm||"")));
@@ -1321,7 +1324,7 @@ function renderMural(){
   });
   focusNew();
 }
-const GROUPS_KEY="mural.gruposAbertos";
+const GROUPS_KEY="mural.gruposAbertos.v2";
 const openGroups=new Set(lsGet(GROUPS_KEY)||[]);
 function saveGroups(){lsSet(GROUPS_KEY,[...openGroups])}
 function grupoOf(r){if(r.grupo==="-")return null;if(r.grupo)return r.grupo;const o=r.origem||"";if(/^weekly news/i.test(o))return "Weekly News";if(/^planejamento/i.test(o))return "Planejamentos";return null}
@@ -1340,8 +1343,8 @@ function groupThumb(r){const v=(r.evidencias||[]).find(v=>v.assetId&&(v.tipoArqu
 function groupTile(rs,g,key){
   const thumbs=rs.map(groupThumb).filter(Boolean).slice(0,3);
   const comps=groupComps(rs);
-  const t=el("button",{type:"button",class:"tile tile-group","aria-expanded":"false",title:"Abrir "+g},
-    el("span",{class:"tile-img grp-stack"},thumbs.length?thumbs.map((u,i)=>el("img",{src:u,alt:"",class:"grp-card c"+i})):el("span",{class:"grp-empty"}),
+  const t=el("button",{type:"button",class:"tile tile-group","aria-expanded":"false",title:"Abrir "+g,"data-grupo":g},
+    el("span",{class:"tile-img grp-stack"},thumbs.length?thumbs.map((u,i)=>el("img",{src:u,alt:"",class:"grp-card c"+i})):el("span",{class:"grp-empty","aria-hidden":"true"},el("span",{class:"grp-ico"})),
       el("span",{class:"grp-count",text:String(rs.length)})),
     el("span",{class:"tile-body"},
       el("span",{class:"tag",text:"Pasta"}),
@@ -1362,10 +1365,12 @@ function groupOpen(rs,g,key,s){
   dropZone(pnl,g);
   return pnl;
 }
-let focusId=null;
+let focusId=null,focusGrp=null;
 function focusNew(){
   if(!focusId)return;
-  const t=document.querySelector('.tile[data-id="'+focusId+'"]');
+  let t=document.querySelector('.tile[data-id="'+focusId+'"]');
+  if(!t&&focusGrp)t=[...document.querySelectorAll('.tile-group')].find(x=>x.dataset.grupo===focusGrp);
+  focusGrp=null;
   if(!t)return;
   focusId=null;
   t.scrollIntoView({behavior:"smooth",block:"center"});
