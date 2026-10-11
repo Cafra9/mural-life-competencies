@@ -1636,7 +1636,9 @@ function lsRawSet(k,v){try{v==null?localStorage.removeItem(k):localStorage.setIt
 let codigo=lsRaw(CODE_KEY)||"";
 let dispositivo=lsRaw(DEV_KEY);
 if(!dispositivo){dispositivo=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2));lsRawSet(DEV_KEY,dispositivo)}
-const urlMap={};
+const urlMap={},urlAt={};
+// guarda o link de cada arquivo por até 20 h (o servidor gera um link novo a cada consulta; trocar o link faz a imagem recarregar e piscar)
+function mergeUrls(m){const now=Date.now();let novo=false;for(const k in (m||{})){if(!urlMap[k]||now-(urlAt[k]||0)>72e6){urlMap[k]=m[k];urlAt[k]=now;novo=true}}return novo}
 const PIXEL="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 let missing=new Set(),missTimer=null;
 function blob(id){
@@ -1645,7 +1647,7 @@ function blob(id){
   missing.add(id);
   if(!missTimer)missTimer=setTimeout(async()=>{
     const ids=[...missing];missing=new Set();missTimer=null;
-    try{const r=await api("urls",{ids});Object.assign(urlMap,r.urls||{});if(Object.keys(r.urls||{}).length)render()}catch{}
+    try{const r=await api("urls",{ids});if(mergeUrls(r.urls))render()}catch{}
   },60);
   return PIXEL;
 }
@@ -1663,12 +1665,15 @@ async function api(acao,body={}){
   return j;
 }
 let snapCb=null,pollTimer=null,offline=false;
+let lastSig="";
 async function refresh(){
   try{
     const r=await api("list");
-    Object.assign(urlMap,r.urls||{});
+    mergeUrls(r.urls||{});
     if(offline){offline=false;$("sync-off").hidden=true}
-    if(snapCb)snapCb({docs:(r.rows||[]).map(x=>{const{id,...rest}=x;return{id,data:()=>rest}})});
+    const sig=JSON.stringify(r.rows||[]);
+    // só redesenha o mural quando algo mudou de verdade
+    if(snapCb&&(sig!==lastSig||!ready)){lastSig=sig;snapCb({docs:(r.rows||[]).map(x=>{const{id,...rest}=x;return{id,data:()=>rest}})})}
   }catch(e){
     if(e&&e.code==="store_unavailable"){offline=true;$("sync-off").hidden=false}
     if(!ready){ready=true;render()}
@@ -1702,7 +1707,7 @@ const apiAssets={
     try{put=await fetch(u.signedUrl,{method:"PUT",headers:{"content-type":tipo,"x-upsert":"false"},body:file})}
     catch{throw {code:"store_unavailable"}}
     if(!put.ok)throw {code:put.status===413?"too_large":"store_unavailable"};
-    try{const r=await api("urls",{ids:[u.id]});Object.assign(urlMap,r.urls||{})}catch{}
+    try{const r=await api("urls",{ids:[u.id]});mergeUrls(r.urls||{})}catch{}
     return{id:u.id,url:urlMap[u.id]||"",contentType:tipo,sizeBytes:file.size};
   },
   async delete(id){await api("deleteAsset",{id});return{deleted:true}}
@@ -1763,7 +1768,7 @@ function closeAdmin(){
 window.__admDocs=new Map();
 async function admLoad(silencioso){
   $("adm-gate").hidden=true;$("adm-main").hidden=false;if(!silencioso)$("adm-list").textContent="Carregando…";
-  try{const j=await admApi("list",{incluirOcultas:true});window.__admHdr=admCode;Object.assign(urlMap,j.urls||{});
+  try{const j=await admApi("list",{incluirOcultas:true});window.__admHdr=admCode;mergeUrls(j.urls||{});
     window.__admDocs=new Map((j.rows||[]).map(r=>[r.id,r]));
     admRows=(j.rows||[]).map(d=>({id:d.id,visivel:d.visivel!==false,nome:d.nome||"",serie:d.serie||"",series:d.series||[],turma:d.turma||"",origem:d.origem||"",grupo:d.grupo||"",professor:d.professor||"",criadoEm:d.criadoEm||"",excluidoEm:d.excluidoEm||null,competencias:d.modo==="todas"?SKILLS.map(s=>s.nome):(d.competencias||[]).map(c=>c.nome),registros:(d.evidencias||[]).length}));
     admFillFo();admRender()}
