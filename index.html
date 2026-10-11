@@ -540,6 +540,20 @@ img,video{max-width:100%}
 .adm-row input{width:22px;height:22px;accent-color:var(--accent);margin:0;cursor:pointer}
 .adm-cb{display:flex;padding:8px;margin:-8px;cursor:pointer}
 .origem-field{margin-top:12px;max-width:420px}
+.tile.dragging{opacity:.45}
+body.is-dragging .tile-group,body.is-dragging .grp-panel{outline:2px dashed var(--accent);outline-offset:3px}
+.drop-on{outline:3px solid var(--accent)!important;background:var(--soft)!important}
+.dragbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:200;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;background:var(--card,#fff);border:1px solid var(--line,#d9e1df);border-radius:14px;padding:10px 12px;box-shadow:0 8px 28px rgba(0,0,0,.18);max-width:calc(100vw - 32px)}
+.dz-hint{font-size:.9rem;color:var(--muted)}
+.dz{border:2px dashed var(--accent);border-radius:10px;padding:10px 14px;font-weight:700;color:var(--accent)}
+.gpop{position:fixed;inset:0;z-index:220;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:16px}
+.gpop[hidden]{display:none}
+.dragbar[hidden],.m-grupo-novo[hidden]{display:none}
+.gpop-box{background:var(--card,#fff);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px;width:min(380px,100%)}
+.m-grupo{display:flex;flex-direction:column;gap:6px;margin-top:16px;max-width:420px}
+.m-grupo label{font-weight:700;font-size:.9rem}
+.m-grupo-novo{display:flex;gap:8px;flex-wrap:wrap}
+.m-grupo-novo input{flex:1;min-width:160px}
 .adm-row:hover{border-color:var(--accent)}
 .adm-row:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
 .adm-name{font-weight:700;overflow-wrap:anywhere}
@@ -562,6 +576,11 @@ img,video{max-width:100%}
 </style>
 </head>
 <body>
+<div id="dragbar" class="dragbar" hidden><span class="dz-hint">Solte numa pasta do mural para agrupar</span><span class="dz" id="dz-new">+ Nova pasta</span><span class="dz" id="dz-out">Tirar da pasta</span></div>
+<div id="gpop" class="gpop" hidden role="dialog" aria-modal="true" aria-labelledby="gpop-t"><form class="gpop-box" id="gpop-f"><strong id="gpop-t">Nova pasta</strong>
+  <label for="gpop-in">Nome da pasta</label><input id="gpop-in" type="text" maxlength="40" placeholder="Ex.: Mural, Booklet, Projetos" autocomplete="off">
+  <p class="cbox-err" id="gpop-err" hidden>Digite um nome para a pasta.</p>
+  <div class="cbox-btns"><button type="submit" class="primary">Criar e mover</button><button type="button" id="gpop-x">Cancelar</button></div></form></div>
 <div class="gate" id="gate" hidden>
   <form class="gate-box" id="gate-form" novalidate>
     <h1>Mural Life Competencies</h1>
@@ -614,7 +633,7 @@ img,video{max-width:100%}
         </div>
       </div>
       <div class="origem-field" id="origem-field">
-        <label for="f-grupo"><span>Grupo no mural <span class="small">(opcional – junta atividades parecidas numa mesma pasta)</span></span>
+        <label for="f-grupo"><span>Pasta no mural <span class="small">(opcional – junta atividades parecidas numa mesma pasta)</span></span>
           <select id="f-grupo"></select></label>
         <label for="f-grupo-novo" id="grupo-novo-wrap" hidden style="margin-top:8px"><span>Nome do novo grupo</span>
           <input id="f-grupo-novo" type="text" maxlength="40" placeholder="Ex.: Mural, Booklet, Projetos" autocomplete="off"></label>
@@ -1309,7 +1328,7 @@ function grupoOf(r){if(r.grupo==="-")return null;if(r.grupo)return r.grupo;const
 const GRUPOS_BASE=["Weekly News","Planejamentos","Mural","Booklet"];
 function allGrupos(){const set=new Map();const add=g=>{if(g&&!set.has(g.toLowerCase()))set.set(g.toLowerCase(),g)};GRUPOS_BASE.forEach(add);rows.forEach(r=>add(grupoOf(r)));if(window.__admDocs)window.__admDocs.forEach(r=>add(grupoOf(r)));return [...set.values()].sort((a,b)=>a.localeCompare(b,"pt"))}
 function fillGrupo(atual){const sel=$("f-grupo");sel.textContent="";const gs=allGrupos();if(atual&&!gs.includes(atual))gs.push(atual);
-  sel.append(el("option",{value:"",text:"Nenhum – fica solta no mural"}));gs.forEach(g=>sel.append(el("option",{value:g,text:g})));sel.append(el("option",{value:"__novo",text:"+ Criar novo grupo…"}));
+  sel.append(el("option",{value:"",text:"Nenhum – fica solta no mural"}));gs.forEach(g=>sel.append(el("option",{value:g,text:g})));sel.append(el("option",{value:"__novo",text:"+ Criar nova pasta…"}));
   sel.value=atual||"";$("f-grupo-novo").value="";$("grupo-novo-wrap").hidden=true}
 $("f-grupo").addEventListener("change",()=>{const n=$("f-grupo").value==="__novo";$("grupo-novo-wrap").hidden=!n;if(n)$("f-grupo-novo").focus()});
 function groupRange(rs){const ds=rs.map(r=>(r.criadoEm||"").slice(0,10)).filter(Boolean).sort();if(!ds.length)return"";
@@ -1331,14 +1350,17 @@ function groupTile(rs,g,key){
       comps.length?el("span",{class:"stats"},el("span",{class:"lc-dots",title:comps.map(c=>c.nome+" ("+c.n+")").join(", ")},comps.map(c=>el("span",{class:"lc-dot",style:`background:${c.bg}`})))):null,
       el("span",{class:"tile-foot"},el("span",{text:groupRange(rs)}),el("span",{class:"grp-open",text:"Abrir ▸"}))));
   t.addEventListener("click",()=>{openGroups.add(key);saveGroups();render()});
+  dropZone(t,g);
   return t;
 }
 function groupOpen(rs,g,key,s){
   const close=el("button",{type:"button",class:"link grp-close","aria-expanded":"true",text:"Recolher ▴"});
   close.addEventListener("click",()=>{openGroups.delete(key);saveGroups();render()});
-  return el("div",{class:"grp-panel"},
+  const pnl=el("div",{class:"grp-panel"},
     el("div",{class:"grp-head"},el("strong",{text:g}),el("span",{class:"small",text:rs.length+(rs.length===1?" atividade":" atividades")+" · "+groupRange(rs)}),close),
     el("div",{class:"grp-grid"},rs.map(r=>tile(r,s))));
+  dropZone(pnl,g);
+  return pnl;
 }
 let focusId=null;
 function focusNew(){
@@ -1382,7 +1404,35 @@ function tile(r,ctx){
       shown.length?el("span",{class:"stats"},shown):null,
       el("span",{class:"tile-foot"},el("span",{text:r.criadoEm?fmtDate(r.criadoEm.slice(0,10)):""}),el("span",{text:nEv+(nEv===1?" registro":" registros")}))));
   t.addEventListener("click",()=>openModal(r,ctx));
+  if(isMine(r)){t.draggable=true;t.addEventListener("dragstart",e=>{dragRow=r;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",r.id)}catch{}t.classList.add("dragging");document.body.classList.add("is-dragging");$("dragbar").hidden=false;$("dz-out").hidden=!grupoOf(r)});
+    t.addEventListener("dragend",()=>{t.classList.remove("dragging");endDrag()})}
   return t;
+}
+function isMine(r){return !!window.__admHdr||!!(me.id&&r.autorId===me.id)}
+let dragRow=null;
+function endDrag(){dragRow=null;document.body.classList.remove("is-dragging");$("dragbar").hidden=true;document.querySelectorAll(".drop-on").forEach(x=>x.classList.remove("drop-on"))}
+function dropZone(node,alvo){
+  node.addEventListener("dragover",e=>{if(!dragRow)return;e.preventDefault();e.stopPropagation();e.dataTransfer.dropEffect="move";node.classList.add("drop-on")});
+  node.addEventListener("dragleave",e=>{if(!node.contains(e.relatedTarget))node.classList.remove("drop-on")});
+  node.addEventListener("drop",e=>{if(!dragRow)return;e.preventDefault();e.stopPropagation();const r=dragRow;endDrag();
+    const g=typeof alvo==="function"?alvo():alvo;if(g===null)return pedirNovoGrupo(r);moverGrupo(r,g)});
+}
+async function moverGrupo(r,g){
+  g=(g||"").trim();const atual=grupoOf(r)||"";
+  if(g.toLowerCase()===atual.toLowerCase())return;
+  if(g){const ex=allGrupos().find(x=>x.toLowerCase()===g.toLowerCase());if(ex)g=ex}
+  const ant=r.grupo;r.grupo=g||"-";focusId=r.id;render();
+  try{await db.collection("atividades").doc(r.id).update({grupo:g||"-"});flash(g?"Atividade movida para a pasta “"+g+"”.":"Atividade retirada da pasta.","Desfazer",()=>moverGrupo(r,atual))}
+  catch{r.grupo=ant;render();flash("Não foi possível mover agora. Tente de novo em instantes.")}
+}
+setTimeout(()=>{
+  dropZone($("dz-new"),null);dropZone($("dz-out"),"");
+  $("gpop-f").addEventListener("submit",e=>{e.preventDefault();const n=$("gpop-in").value.trim().replace(/\s+/g," ");if(!n){$("gpop-err").hidden=false;return}$("gpop").hidden=true;moverGrupo($("gpop").__row,n)});
+  $("gpop-x").addEventListener("click",()=>$("gpop").hidden=true);
+  $("gpop").addEventListener("keydown",e=>{if(e.key==="Escape")$("gpop").hidden=true});
+},0);
+function pedirNovoGrupo(r){
+  const box=$("gpop"),inp=$("gpop-in");inp.value="";$("gpop-err").hidden=true;box.hidden=false;box.__row=r;inp.focus();
 }
 let openId=null,openCtx=null,lastFocus=null,confirming=false,flashT=null;
 function flash(t,actLabel,act){
@@ -1529,6 +1579,16 @@ function card(r,ctx){
   });
   if(evUl.children.length)c.append(el("h3",{text:"Registros"}),evUl);
   if(mine){
+    const gsel=el("select",{id:"m-grupo","aria-label":"Pasta no mural"});
+    const gAtual=grupoOf(r)||"";const gl=allGrupos();if(gAtual&&!gl.includes(gAtual))gl.push(gAtual);
+    gsel.append(el("option",{value:"",text:"Nenhuma – solta no mural"}));gl.forEach(g=>gsel.append(el("option",{value:g,text:g})));gsel.append(el("option",{value:"__novo",text:"+ Criar nova pasta…"}));gsel.value=gAtual;
+    const gnovo=el("input",{type:"text",maxlength:"40",placeholder:"Nome da nova pasta","aria-label":"Nome da nova pasta"});
+    const gok=el("button",{type:"button",class:"primary",text:"Criar e mover"});
+    const gnw=el("div",{class:"m-grupo-novo",hidden:""},gnovo,gok);
+    gsel.addEventListener("change",()=>{if(gsel.value==="__novo"){gnw.hidden=false;gnovo.focus();return}gnw.hidden=true;moverGrupo(r,gsel.value)});
+    const criar=()=>{const n=gnovo.value.trim().replace(/\s+/g," ");if(!n){gnovo.focus();return}moverGrupo(r,n)};
+    gok.addEventListener("click",criar);gnovo.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();criar()}});
+    c.append(el("div",{class:"m-grupo"},el("label",{for:"m-grupo",text:"Pasta no mural"}),gsel,gnw));
     const acts=el("div",{class:"actions"});
     const ed=el("button",{type:"button",text:"Editar"});ed.addEventListener("click",()=>{closeModal(true);if(!$("adm").hidden){window.__admReturn=true;$("adm").hidden=true;document.body.style.overflow=""}openForm(r)});
     const del=el("button",{type:"button",class:"danger",text:"Excluir"});
