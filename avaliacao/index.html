@@ -192,6 +192,14 @@ td.str{text-align:left;font-size:.8rem}
 .audtog{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:7px 14px 7px 10px;background:var(--brand);color:var(--brand-ink);font-weight:600;font-size:.85rem}
 .audtog svg{width:22px;height:22px}
 .audtog.off{background:var(--line);color:var(--muted)}
+.opt .dot:not(.pic){color:var(--ink);border-color:var(--ink)}
+.opt.reading .dot:not(.pic),.opt[aria-pressed="true"] .dot:not(.pic){background:color-mix(in srgb,var(--brand) 22%,var(--surface));color:var(--ink);border-color:var(--ink)}
+.stars span{color:var(--ink);border-color:var(--ink)}
+.exitbtn{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 14px 6px 10px;font-weight:600;font-size:.85rem}
+.exitbtn:hover{border-color:var(--no);color:var(--no)}
+.exitbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--flag-bg);color:var(--ink);border-radius:16px;padding:12px 16px;font-weight:600}
+.exitbar-btns{display:flex;gap:8px;flex-wrap:wrap}
+.exitbar .btn.small{background:var(--no);color:#fff}
 </style>
 
 </head>
@@ -515,7 +523,7 @@ const T = {
    intro1:"Vou ler três frases para você: A, B e C. Todas falam de coisas legais. Escolha a que mais tem a ver com você. Não existe resposta errada, tá bom?",
    intro2:"Na maioria das perguntas, as três frases falam de coisas boas. Escolha a que mais tem a ver com você, e não a que parece mais bonita. Em algumas, você vai pensar numa situação e escolher o que acha que funciona melhor.",
    go:"Vamos!",qForca1:"Qual dessas frases tem mais a ver com você?",qForca2:"Qual dessas frases tem mais a ver com você?",
-   listen:"Repetir",audioOn:"Ligar o áudio",audioOff:"Desligar o áudio",audioIsOn:"Áudio ligado",audioIsOff:"Áudio desligado",next1:"Próxima",check:"Conferir",fbOkStart:"Muito bem, você aprendeu! Essa habilidade se chama",fbPartOf:"e faz parte de",fbNo:"Você pode continuar aprendendo! Volte e escolha outra resposta para descobrir.",fbChose:"Você escolheu",fbThatPart:"que faz parte de",fbNotThis:"Essa não é a habilidade desta situação.",back:"Voltar",finish:"Terminar",openPh:"Escreva aqui (opcional)",
+   listen:"Repetir",audioOn:"Ligar o áudio",audioOff:"Desligar o áudio",audioIsOn:"Áudio ligado",exit2:"Sair",exitAsk:"Sair da atividade? As respostas desta atividade não serão salvas.",exitYes:"Sim, sair",exitNo:"Continuar respondendo",audioIsOff:"Áudio desligado",next1:"Próxima",check:"Conferir",fbOkStart:"Muito bem, você aprendeu! Essa habilidade se chama",fbPartOf:"e faz parte de",fbNo:"Você pode continuar aprendendo! Volte e escolha outra resposta para descobrir.",fbChose:"Você escolheu",fbThatPart:"que faz parte de",fbNotThis:"Essa não é a habilidade desta situação.",back:"Voltar",finish:"Terminar",openPh:"Escreva aqui (opcional)",
    done:"Muito bem!",doneSub:"Obrigado por responder com sinceridade!",next:"Próximo aluno",saving:"Salvando…",saved:"Respostas salvas.",
    savedLocal:"Sem internet agora: as respostas ficaram guardadas neste aparelho e serão enviadas automaticamente quando a conexão voltar.",
    panel:"Painel da coordenação",refresh:"Atualizar",netErr:"Não foi possível falar com o servidor. Verifique a internet e tente de novo.",code:"Código do painel",enter:"Entrar",wrong:"Código incorreto.",exit:"Voltar ao início",
@@ -548,7 +556,7 @@ const T = {
    intro1:"I'll read three sentences: A, B and C. They are all about nice things. Choose the one most like you. There's no wrong answer.",
    intro2:"In most questions all three sentences are good things. Choose the one MOST like you, not the one that sounds nicest. In some, you'll think about a situation: choose what you think works best.",
    go:"Let's go!",qForca1:"Which sentence is most like you?",qForca2:"Which sentence is most like you?",
-   listen:"Repeat",audioOn:"Turn sound on",audioOff:"Turn sound off",audioIsOn:"Sound on",audioIsOff:"Sound off",next1:"Next",check:"Check",fbOkStart:"Well done, you learned it! This skill is called",fbPartOf:"and it is part of",fbNo:"You can keep learning! Go back and choose another answer to find out.",fbChose:"You chose",fbThatPart:"which is part of",fbNotThis:"That is not the skill in this situation.",back:"Back",finish:"Finish",openPh:"Write here (optional)",
+   listen:"Repeat",audioOn:"Turn sound on",audioOff:"Turn sound off",audioIsOn:"Sound on",exit2:"Exit",exitAsk:"Leave the activity? The answers to this activity will not be saved.",exitYes:"Yes, leave",exitNo:"Keep answering",audioIsOff:"Sound off",next1:"Next",check:"Check",fbOkStart:"Well done, you learned it! This skill is called",fbPartOf:"and it is part of",fbNo:"You can keep learning! Go back and choose another answer to find out.",fbChose:"You chose",fbThatPart:"which is part of",fbNotThis:"That is not the skill in this situation.",back:"Back",finish:"Finish",openPh:"Write here (optional)",
    done:"Well done!",doneSub:"Thank you for answering honestly.",next:"Next student",saving:"Saving…",saved:"Answers saved.",
    savedLocal:"No internet right now: the answers are stored on this device and will be sent automatically when the connection is back.",
    panel:"Coordinator panel",refresh:"Refresh",netErr:"Could not reach the server. Check the internet connection and try again.",code:"Panel code",enter:"Enter",wrong:"Wrong code.",exit:"Back to start",
@@ -748,11 +756,12 @@ const tag = c => `<span class="tag" style="--c:var(${COMPS[c].c})">${esc(L(COMPS
 
 /* ---------- telas ---------- */
 function header(extra=""){
+  const confirmBar = S.confirmExit && ["intro","quiz"].includes(S.screen) ? `<div class="exitbar" role="alert"><span>${esc(t("exitAsk"))}</span><span class="exitbar-btns"><button class="btn small" data-act="exitYes">${esc(t("exitYes"))}</button><button class="btn ghost" data-act="exitNo">${esc(t("exitNo"))}</button></span></div>` : "";
   return `<div class="top"><div class="wordmark"><span class="wheel" aria-hidden="true"></span>${esc(t("title"))}</div>
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${extra}${["intro","quiz","end"].includes(S.screen)?audioToggle():""}
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${extra}${["intro","quiz","end"].includes(S.screen)?audioToggle()+`<button class="exitbtn" data-act="exit" title="${esc(t("exit2"))}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${esc(t("exit2"))}</span></button>`:""}
   <div class="lang" role="group" aria-label="Idioma / Language">
     <button data-act="lang" data-v="pt" aria-pressed="${S.lang==="pt"}">PT</button>
-    <button data-act="lang" data-v="en" aria-pressed="${S.lang==="en"}">EN</button></div></div></div>`;
+    <button data-act="lang" data-v="en" aria-pressed="${S.lang==="en"}">EN</button></div></div></div>${confirmBar}`;
 }
 
 function renderStart(){
@@ -981,6 +990,9 @@ app.addEventListener("click", async e=>{
   }
   else if(a==="go"){ S.startedAt=Date.now(); S.screen="quiz"; showQuestion(); }
   else if(a==="speak" || a==="replay"){ forceOnce = true; speakCurrent(); }
+  else if(a==="exit"){ if(S.screen==="end"){ goStart(); } else { S.confirmExit=true; render(); } }
+  else if(a==="exitNo"){ S.confirmExit=false; render(); }
+  else if(a==="exitYes"){ goStart(); }
   else if(a==="audio"){ audioOn = !audioOn; try{ localStorage.setItem("lc-audio", audioOn?"on":"off"); }catch(e){}
     if(audioOn){ render(); speakCurrent(); } else { speakToken++; try{speechSynthesis.cancel();}catch(e){} S.reading=-1; render(); } }
   else if(a==="answer"){
@@ -1047,6 +1059,7 @@ app.addEventListener("keydown", e=>{
   if(e.key==="Enter" && e.target.id==="f-code"){ e.preventDefault(); app.querySelector('[data-act="enterPanel"]')?.click(); }
   if(e.key==="Enter" && e.target.id==="f-name"){ e.preventDefault(); document.getElementById("b-start")?.click(); }
 });
+function goStart(){ speakToken++; try{speechSynthesis.cancel();}catch(e){} S.confirmExit=false; S.reading=-1; S.fb=null; S.name=""; S.saveMsg=""; S.screen="start"; render(); window.scrollTo(0,0); }
 function finish(){ speakToken++; try{speechSynthesis.cancel();}catch(e){} S.screen="end"; render(); saveResponse(); }
 
 function baixar(nome, texto){
