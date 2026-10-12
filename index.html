@@ -1413,7 +1413,8 @@ function tile(r,ctx){
     t.addEventListener("dragend",()=>{t.classList.remove("dragging");endDrag()})}
   return t;
 }
-function isMine(r){return !!window.__admHdr||!!(me.id&&r.autorId===me.id)}
+// todos os professores podem editar, mover e excluir qualquer atividade
+function isMine(r){return true}
 let dragRow=null;
 function endDrag(){dragRow=null;document.body.classList.remove("is-dragging");$("dragbar").hidden=true;document.querySelectorAll(".drop-on").forEach(x=>x.classList.remove("drop-on"))}
 function dropZone(node,alvo){
@@ -1477,10 +1478,10 @@ function drawTrash(){
   const list=trashRows();
   const wrap=el("section",{class:"card trash"},
     el("h3",{text:"Lixeira"}),
-    el("p",{class:"small",text:"Atividades excluídas ficam aqui. Quem incluiu a atividade pode restaurá-la ou apagá-la de vez."}));
+    el("p",{class:"small",text:"Atividades excluídas ficam aqui. Qualquer professor pode restaurá-las ou apagá-las de vez."}));
   if(!list.length)wrap.append(el("p",{class:"trash-empty",text:"A lixeira está vazia."}));
   list.forEach(r=>{
-    const mine=(!!window.__admHdr||me.id&&r.autorId===me.id);
+    const mine=isMine(r);
     const row=el("div",{class:"trash-row"},
       el("div",{class:"trash-info"},
         el("strong",{text:r.nome||"Atividade sem nome"}),
@@ -1553,7 +1554,7 @@ async function fillAuthors(root){
     e.textContent=id===me.id?"por você":(p&&p.name?"por "+p.name:"")});
 }
 function card(r,ctx){
-  const mine=(!!window.__admHdr||me.id&&r.autorId===me.id);
+  const mine=isMine(r);
   const c=el("article",{class:"card",id:"r-"+r.id},
     el("div",{class:"meta"},(seriesOf(r).length||r.turma)?el("span",{class:"tag",text:[seriesLabel(seriesOf(r)),r.turma?(r.turma==="Todos"?"Todas as turmas":"Turma "+r.turma):""].filter(Boolean).join(" · ")}):null,r.criadoEm?el("span",{text:"Registrado em "+fmtDate(r.criadoEm.slice(0,10))}):null,(r.autorId||r.professor)?el("span",{class:"autor","data-uid":r.autorId||"","data-nome":r.professor||""}):null),
     el("h3",{text:r.nome||"Atividade sem nome"}),r.descricao?el("p",{text:r.descricao}):null,
