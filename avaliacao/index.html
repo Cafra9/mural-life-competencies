@@ -808,7 +808,7 @@ function renderEnd(){
 function renderGate(){
   return header() + `<section class="card" style="display:flex;flex-direction:column;gap:14px;max-width:380px;margin:40px auto 0">
     <h2>${esc(t("panel"))}</h2>
-    <div class="field"><label class="lbl" for="f-code">${esc(t("code"))}</label><input id="f-code" type="text" autocomplete="off" autocapitalize="characters" placeholder="LC-XXXX-XXXX"></div>
+    <div class="field"><label class="lbl" for="f-code">${esc(t("code"))}</label><input id="f-code" type="text" autocomplete="off" autocapitalize="characters" placeholder="Digite o código"></div>
     ${S.gateErr?`<p style="margin:0;color:var(--no)">${esc(S.gateMsg||t("wrong"))}</p>`:""}
     <div style="display:flex;gap:10px"><button class="btn small" data-act="enterPanel">${esc(t("enter"))}</button><button class="btn ghost" data-act="home">${esc(t("exit"))}</button></div>
   </section>`;
