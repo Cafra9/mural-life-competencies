@@ -200,6 +200,46 @@ td.str{text-align:left;font-size:.8rem}
 .exitbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--flag-bg);color:var(--ink);border-radius:16px;padding:12px 16px;font-weight:600}
 .exitbar-btns{display:flex;gap:8px;flex-wrap:wrap}
 .exitbar .btn.small{background:var(--no);color:#fff}
+/* editor de perguntas */
+.edtop{display:flex;flex-direction:column;gap:12px}
+.edsecs{display:flex;flex-wrap:wrap;gap:8px}
+.edsecs button{border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:600;font-size:.85rem}
+.edsecs button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.edcard{background:var(--surface);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;border-left:6px solid var(--c,var(--line))}
+.edcard.bad{box-shadow:inset 0 0 0 2px var(--no)}
+.edcomp{font-size:1.2rem;color:var(--c,var(--ink))}
+.edh{font-size:1.2rem;margin-top:8px}
+.edhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.edhead b{font-family:var(--display);font-size:1.2rem}
+.edinline{display:flex;align-items:center;gap:8px;font-size:.85rem;font-weight:600;color:var(--muted)}
+.edinline select,.edf select{font:inherit;font-size:.95rem;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);max-width:100%}
+.edpair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:700px){.edpair{grid-template-columns:1fr}}
+.edf{display:flex;flex-direction:column;gap:4px;min-width:0}
+.edf>span{font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.edf textarea,.edf input{font:inherit;font-size:.98rem;line-height:1.4;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box;resize:vertical}
+.edf textarea:focus,.edf input:focus{border-color:var(--brand);outline:none}
+.edsub{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--line)}
+.edsub:first-of-type{border-top:0;padding-top:0}
+.edsk{font-size:.8rem;font-weight:700;color:var(--c,var(--muted))}
+.edopt{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:start;padding-top:10px;border-top:1px dashed var(--line)}
+@media (max-width:700px){.edopt{grid-template-columns:1fr}}
+.edok{display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:600;padding-top:20px}
+.edans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.edans{grid-template-columns:1fr}}
+.edans .edf:first-child>span{color:var(--ok)}
+.edchecks{display:flex;gap:18px;flex-wrap:wrap;font-weight:600;font-size:.9rem}
+.edchecks label{display:flex;align-items:center;gap:6px}
+.edwarn{margin:0;color:var(--no);font-weight:600;font-size:.9rem}
+.edconfirm{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;font-size:.9rem}
+.edhist{background:var(--surface);border-radius:14px;padding:12px 16px}
+.edhist summary{cursor:pointer;font-weight:600}
+.edhist ul{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+.edbar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface);border-radius:16px;padding:12px 16px;box-shadow:0 -6px 24px -12px #0b3a2655;margin-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+.edbar.dirty{box-shadow:inset 0 0 0 2px var(--flag),0 -6px 24px -12px #0b3a2655}
+.edstate{font-weight:600;font-size:.92rem}
+.edstate.bad{color:var(--no)}
+.edbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 </style>
 
 </head>
@@ -505,6 +545,57 @@ const ICOMP = {cog:"🧠",glo:"🌍",dig:"🚀",aut:"🌱",int:"🤝"};
 const ISKILL = {pc:"🔍",cr:"🎨",cu:"❓",ci:"🏫",ac:"📣",ic:"🌏",al:"🖱️",re:"🔒",in:"🤖",co:"🦁",aa:"🧭",be:"🍎",cl:"🧩",cm:"💬",se:"💗"};
 const ITEMS = {auto:{1:buildItems(1),2:buildItems(2)}, saber:{1:buildSaber(1),2:buildSaber(2)}};
 
+/* =====================================================================
+   CONTEÚDO EDITÁVEL — a coordenação edita no painel (aba "Perguntas").
+   O texto original acima é o padrão; a versão salva no servidor o substitui.
+   ===================================================================== */
+const clone = o => JSON.parse(JSON.stringify(o));
+function snapshotContent(){
+  return clone({
+    stm:STM, sits:SITS, open:OPEN_Q,
+    wheel:{1:WHEEL_Q[1].map(q=>({pt:q.pt,en:q.en,o:q.o.map(o=>({pt:o.pt,en:o.en,ok:o.ok?1:0}))})),
+           2:WHEEL_Q[2].map(q=>({pt:q.pt,en:q.en,o:q.o.map(o=>({pt:o.pt,en:o.en,ok:o.ok?1:0}))}))},
+    id1:ID1.map(x=>({id:x.id,ans:x.ans,o:x.o,pt:x.pt,en:x.en,ref:x.ref||""})),
+    id2:ID2.map(x=>({id:x.id,ans:x.ans,o:x.o,pt:x.pt,en:x.en,ref:x.ref||""})),
+    k4:ORDER_K4, s1:ORDER_S1, kidc:KIDC, kids:KIDS
+  });
+}
+const DEFAULT_CONTENT = snapshotContent();
+const fillArr = (arr, src) => { arr.splice(0, arr.length, ...src); };
+const fillObj = (obj, src) => { Object.keys(obj).forEach(k=>delete obj[k]); Object.assign(obj, src); };
+const txt = (o, d) => ({pt:String(o?.pt ?? d?.pt ?? ""), en:String(o?.en ?? d?.en ?? "")});
+function applyContent(doc){
+  const D = DEFAULT_CONTENT, c = doc || D;
+  // frases da autoavaliação (estrutura fixa: 6 por competência; só o texto muda)
+  for(const st of [1,2]) for(const k of CK) D.stm[st][k].forEach((d,i)=>{ Object.assign(STM[st][k][i], txt(c.stm?.[st]?.[k]?.[i], d)); });
+  // situações da autoavaliação
+  for(const st of [1,2]){
+    const src = Array.isArray(c.sits?.[st]) && c.sits[st].length ? c.sits[st] : D.sits[st];
+    fillArr(SITS[st], src.map((x,i)=>({id:x.id||`s${st}-x${i}`, sk:SKILLS[x.sk]?x.sk:"pc", i:x.i||"💭", ...txt(x),
+      o:[0,1,2].map(j=>({...txt(x.o?.[j]), ...(x.o?.[j]?.ok?{ok:1}:{})}))})));
+  }
+  Object.assign(OPEN_Q, txt(c.open, D.open));
+  // perguntas da roda (estrutura fixa)
+  for(const st of [1,2]) WHEEL_Q[st].forEach((q,qi)=>{
+    const w = c.wheel?.[st]?.[qi] || D.wheel[st][qi];
+    Object.assign(q, txt(w, D.wheel[st][qi]));
+    q.o.forEach((o,oi)=>{ Object.assign(o, txt(w.o?.[oi], D.wheel[st][qi].o[oi])); if(q.k==="sabe"){ if(w.o?.[oi]?.ok) o.ok=1; else delete o.ok; } });
+  });
+  // situações de "O que eu sei"
+  const okKeys1 = k => !!COMPS[k], okKeys2 = k => !!SKILLS[k];
+  const idList = (arr, valid) => arr.filter(x=>x && x.id && valid(x.ans) && Array.isArray(x.o) && x.o.length===3 && x.o.every(valid))
+    .map(x=>({id:String(x.id), ans:x.ans, o:[x.ans, x.o[1], x.o[2]], ...txt(x), ref:String(x.ref||"")}));
+  fillArr(ID1, idList(Array.isArray(c.id1)?c.id1:D.id1, okKeys1));
+  fillArr(ID2, idList(Array.isArray(c.id2)?c.id2:D.id2, okKeys2));
+  const ids1 = new Set(ID1.map(x=>x.id));
+  fillArr(ORDER_K4, (Array.isArray(c.k4)?c.k4:D.k4).filter(id=>ids1.has(id)));
+  fillArr(ORDER_S1, (Array.isArray(c.s1)?c.s1:D.s1).filter(id=>ids1.has(id)));
+  // nomes simples para K4/K5
+  for(const k of CK) Object.assign(KIDC[k], txt(c.kidc?.[k], D.kidc[k]));
+  for(const k of Object.keys(SKILLS)) Object.assign(KIDS[k], txt(c.kids?.[k], D.kids[k]));
+  ITEMS.auto[1]=buildItems(1); ITEMS.auto[2]=buildItems(2); ITEMS.saber[1]=buildSaber(1); ITEMS.saber[2]=buildSaber(2);
+}
+
 const T = {
  pt:{title:"Autoavaliação Life Competencies",grade:"Série",section:"Turma (opcional)",name:"Nome do aluno",namePh:"Primeiro nome e inicial",start:"Começar",
    wheelChip:"o que você já sabe",wheelAlt:"Roda das Life Competencies da iSP",
@@ -526,7 +617,22 @@ const T = {
    listen:"Repetir",audioOn:"Ligar o áudio",audioOff:"Desligar o áudio",audioIsOn:"Áudio ligado",exit2:"Sair",exitAsk:"Sair da atividade? As respostas desta atividade não serão salvas.",exitYes:"Sim, sair",exitNo:"Continuar respondendo",audioIsOff:"Áudio desligado",next1:"Próxima",check:"Conferir",fbOkStart:"Muito bem, você aprendeu! Essa habilidade se chama",fbPartOf:"e faz parte de",fbNo:"Você pode continuar aprendendo! Volte e escolha outra resposta para descobrir.",fbChose:"Você escolheu",fbThatPart:"que faz parte de",fbNotThis:"Essa não é a habilidade desta situação.",back:"Voltar",finish:"Terminar",openPh:"Escreva aqui (opcional)",
    done:"Muito bem!",doneSub:"Obrigado por responder com sinceridade!",next:"Próximo aluno",saving:"Salvando…",saved:"Respostas salvas.",
    savedLocal:"Sem internet agora: as respostas ficaram guardadas neste aparelho e serão enviadas automaticamente quando a conexão voltar.",
-   panel:"Painel da coordenação",refresh:"Atualizar",netErr:"Não foi possível falar com o servidor. Verifique a internet e tente de novo.",code:"Código do painel",enter:"Entrar",wrong:"Código incorreto.",exit:"Voltar ao início",
+   panel:"Painel da coordenação",edTab:"Perguntas",
+   edIntro:"Revise e edite os textos e as respostas das duas atividades. Nada muda para os alunos até você tocar em Salvar; depois de salvar, a mudança vale para todos os aparelhos na próxima atividade que começar.",
+   edSecs:{a1f1:"Autoavaliação · frases K4–Y2",a1f2:"Autoavaliação · frases Y3–Y5",a1s:"Autoavaliação · situações",a2w:"O que eu sei · roda",a2s1:"O que eu sei · situações K4–Y2",a2s2:"O que eu sei · situações Y3–Y5",kid:"Nomes simples (K4/K5)"},
+   edStmNote:"Cada pergunta mostra 3 frases, uma de cada competência. Aqui você edita o texto de cada frase; a habilidade de cada uma fica fixa.",
+   edId1Note:"Para K4 e K5 aparecem só a resposta certa e a 1ª alternativa. Marque em quais séries cada situação aparece.",
+   edId2Note:"Dica: use como 1ª alternativa uma habilidade da mesma competência, e como 2ª uma de outra competência. Evite alternativas que também possam ser certas.",
+   edKidNote:"Expressões que aparecem e são lidas para K4 e K5 no lugar dos nomes técnicos.",edKidComps:"Competências",edKidSkills:"Habilidades",
+   edQuestion:"Pergunta",edSituation:"Situação",edOption:"Opção",edExpected:"Atitude esperada",edRight:"Resposta certa",edRightShort:"Certa",edSkill:"Habilidade avaliada",
+   edAlt1:"1ª alternativa (mesma competência)",edAlt2:"2ª alternativa (outra competência)",edAlt1k:"1ª alternativa (todas as séries)",edAlt2k:"2ª alternativa (só Y1 e Y2)",
+   edUseK4:"Usar no K4",edUseS1:"Usar no K5–Y2",edRef:"Base no Quadro Referencial (anotação para a coordenação)",edOpenQ:"Pergunta aberta final",
+   edAddSit:"Adicionar situação",edRemove:"remover",edDelAsk:"Remover esta situação?",edDup:"Escolha três opções diferentes.",
+   edSave:"Salvar alterações",edDiscard:"Desfazer alterações",edResetBtn:"Voltar ao original",edResetAsk:"Voltar todas as perguntas ao texto original?",edResetYes:"Sim, voltar",
+   edUnsaved:"Há alterações não salvas.",edAllSaved:"Tudo salvo.",edSaved:"Salvo! As perguntas novas já valem para todos os aparelhos.",edDiscarded:"Alterações desfeitas.",edResetDone:"As perguntas voltaram ao texto original.",
+   edFix:"Corrija antes de salvar:",edNeedOk:"marque uma atitude esperada",edEmptyList:"nenhuma situação marcada para uma das séries",
+   edHist:"Versões anteriores",edHistOrig:"texto original",edHistLoad:"carregar no editor",edVerLoaded:"Versão carregada no editor. Toque em Salvar para colocá-la em uso.",
+   edLeaveAsk:"Você tem alterações não salvas. Sair do editor mesmo assim?",edLeaveYes:"Sair sem salvar",edLeaveNo:"Continuar editando",refresh:"Atualizar",netErr:"Não foi possível falar com o servidor. Verifique a internet e tente de novo.",code:"Código do painel",enter:"Entrar",wrong:"Código incorreto.",exit:"Voltar ao início",
    all:"Todas",students:"respostas",lvl:["Iniciando","Desenvolvendo","Dominando"],
    profileTitle:"Onde os alunos se veem mais fortes",profileNote:"Quantas vezes cada competência foi escolhida, entre as 6 em que apareceu. Mostra forças relativas, não nível.",
    sitTitle:"Situações",sitNote:"% de alunos que escolheram a opção que mostra a habilidade com mais profundidade.",
@@ -559,7 +665,22 @@ const T = {
    listen:"Repeat",audioOn:"Turn sound on",audioOff:"Turn sound off",audioIsOn:"Sound on",exit2:"Exit",exitAsk:"Leave the activity? The answers to this activity will not be saved.",exitYes:"Yes, leave",exitNo:"Keep answering",audioIsOff:"Sound off",next1:"Next",check:"Check",fbOkStart:"Well done, you learned it! This skill is called",fbPartOf:"and it is part of",fbNo:"You can keep learning! Go back and choose another answer to find out.",fbChose:"You chose",fbThatPart:"which is part of",fbNotThis:"That is not the skill in this situation.",back:"Back",finish:"Finish",openPh:"Write here (optional)",
    done:"Well done!",doneSub:"Thank you for answering honestly.",next:"Next student",saving:"Saving…",saved:"Answers saved.",
    savedLocal:"No internet right now: the answers are stored on this device and will be sent automatically when the connection is back.",
-   panel:"Coordinator panel",refresh:"Refresh",netErr:"Could not reach the server. Check the internet connection and try again.",code:"Panel code",enter:"Enter",wrong:"Wrong code.",exit:"Back to start",
+   panel:"Coordinator panel",edTab:"Questions",
+   edIntro:"Review and edit the texts and answers of both activities. Nothing changes for students until you tap Save; after saving, the change applies on every device from the next activity started.",
+   edSecs:{a1f1:"Self-assessment · sentences K4–Y2",a1f2:"Self-assessment · sentences Y3–Y5",a1s:"Self-assessment · situations",a2w:"What I know · wheel",a2s1:"What I know · situations K4–Y2",a2s2:"What I know · situations Y3–Y5",kid:"Simple names (K4/K5)"},
+   edStmNote:"Each question shows 3 sentences, one per competency. Edit the text of each sentence here; the skill of each one is fixed.",
+   edId1Note:"For K4 and K5 only the right answer and the 1st alternative appear. Tick which year groups each situation is used in.",
+   edId2Note:"Tip: use a skill from the same competency as the 1st alternative, and one from another competency as the 2nd. Avoid alternatives that could also be right.",
+   edKidNote:"Expressions shown and read to K4 and K5 instead of the technical names.",edKidComps:"Competencies",edKidSkills:"Skills",
+   edQuestion:"Question",edSituation:"Situation",edOption:"Option",edExpected:"Expected behaviour",edRight:"Right answer",edRightShort:"Right",edSkill:"Skill assessed",
+   edAlt1:"1st alternative (same competency)",edAlt2:"2nd alternative (other competency)",edAlt1k:"1st alternative (shown to all year groups)",edAlt2k:"2nd alternative (Y1 and Y2 only)",
+   edUseK4:"Use in K4",edUseS1:"Use in K5–Y2",edRef:"Framework reference (note for coordinators)",edOpenQ:"Final open question",
+   edAddSit:"Add situation",edRemove:"remove",edDelAsk:"Remove this situation?",edDup:"Choose three different options.",
+   edSave:"Save changes",edDiscard:"Undo changes",edResetBtn:"Back to original",edResetAsk:"Return all questions to the original text?",edResetYes:"Yes, go back",
+   edUnsaved:"There are unsaved changes.",edAllSaved:"Everything saved.",edSaved:"Saved! The new questions now apply on every device.",edDiscarded:"Changes undone.",edResetDone:"Questions are back to the original text.",
+   edFix:"Fix before saving:",edNeedOk:"tick one expected behaviour",edEmptyList:"no situation ticked for one of the year groups",
+   edHist:"Previous versions",edHistOrig:"original text",edHistLoad:"load into editor",edVerLoaded:"Version loaded into the editor. Tap Save to put it in use.",
+   edLeaveAsk:"You have unsaved changes. Leave the editor anyway?",edLeaveYes:"Leave without saving",edLeaveNo:"Keep editing",refresh:"Refresh",netErr:"Could not reach the server. Check the internet connection and try again.",code:"Panel code",enter:"Enter",wrong:"Wrong code.",exit:"Back to start",
    all:"All",students:"responses",lvl:["Beginning","Developing","Mastering"],
    profileTitle:"Where students see themselves as strongest",profileNote:"How many times each competency was chosen, out of the 6 times it appeared. Shows relative strengths, not level.",
    sitTitle:"Situations",sitNote:"% of students who chose the option showing the skill in most depth.",
@@ -686,6 +807,23 @@ async function api(acao, extra={}, code=null){
   return j;
 }
 S.dbReady = true;
+/* perguntas: usa a cópia guardada no aparelho e depois confere a versão do servidor */
+let pendingContent;
+function useContent(doc){
+  if(["intro","quiz"].includes(S.screen)){ pendingContent = doc; return; }  // nunca troca no meio de uma atividade
+  try{ applyContent(doc); }catch(e){ console.error(e); applyContent(null); }
+}
+try{ const c = JSON.parse(localStorage.getItem("lc-content")||"null"); if(c && c.doc) useContent(c.doc); }catch(e){}
+async function loadContent(){
+  try{
+    const j = await api("getContent");
+    S.contentVer = j.versao; S.contentAt = j.em;
+    try{ localStorage.setItem("lc-content", JSON.stringify({doc:j.doc, versao:j.versao})); }catch(e){}
+    useContent(j.doc);
+    if(["start","panel"].includes(S.screen)) render();
+  }catch(e){}
+}
+loadContent();
 function localQueue(){ try{ return JSON.parse(localStorage.getItem("lc-queue")||"[]"); }catch(e){ return []; } }
 function setLocalQueue(q){ try{ localStorage.setItem("lc-queue",JSON.stringify(q)); }catch(e){} }
 /* respostas que não puderam ser enviadas (sem internet) ficam no aparelho e são reenviadas depois */
@@ -863,7 +1001,8 @@ function renderPanel(){
   const rows = filtered(), all = allRows();
   const sections = [...new Set(all.filter(r=>(r.teste||"auto")===S.panelTest).filter(r=>!S.panelGrade||r.serie===S.panelGrade).map(r=>r.turma||"").filter(Boolean))].sort();
   let html = header(`<button class="btn ghost" data-act="home">${esc(t("exit"))}</button>`) + `<h1 style="font-size:2rem">${esc(t("panel"))}</h1>
-  <div class="ptabs" role="tablist">${["auto","saber"].map(k=>`<button role="tab" data-act="ptab" data-v="${k}" aria-selected="${S.panelTest===k}">${esc(t("tests")[k][0])}</button>`).join("")}</div>`;
+  <div class="ptabs" role="tablist">${["auto","saber"].map(k=>`<button role="tab" data-act="ptab" data-v="${k}" aria-selected="${S.panelTest===k}">${esc(t("tests")[k][0])}</button>`).join("")}<button role="tab" data-act="ptab" data-v="edit" aria-selected="${S.panelTest==="edit"}">✎ ${esc(t("edTab"))}</button></div>`;
+  if(S.panelTest==="edit") return html + renderEditor();
   if(S.loadErr) html += `<div class="status">${esc(t("netErr"))}</div>`;
   if(S.evalMsg) html += `<div class="note">${esc(S.evalMsg)}</div>`;
   html += `<div class="filters">
@@ -965,6 +1104,154 @@ function renderSaber(rows){
   return html;
 }
 
+/* ---------- editor de perguntas ---------- */
+const EDSECS = ["a1f1","a1f2","a1s","a2w","a2s1","a2s2","kid"];
+function openEditor(){ if(!S.ed || !S.edDirty) S.ed = snapshotContent(); S.edSec = S.edSec || "a1f1"; S.edMsg=""; S.edConfirmReset=false; loadHistory(); }
+async function loadHistory(){ try{ const j = await api("contentHistory",{},painelCode); S.edHist = j.versoes||[]; if(S.panelTest==="edit") render(); }catch(e){} }
+function edGet(path){ return path.split(".").reduce((o,k)=>o==null?undefined:o[k], S.ed); }
+function edSet(path, val){ const ks=path.split("."); const last=ks.pop(); const o=ks.reduce((o,k)=>o[k], S.ed); o[last]=val; }
+function edChange(el){
+  const path = el.dataset.edc, kind = el.dataset.kind;
+  if(kind==="ok"){ const arr = edGet(path); arr.forEach((o,i)=>{ if(i===+el.value) o.ok=1; else delete o.ok; }); }
+  else if(kind==="ans"){ const it = edGet(path); it.ans = el.value; it.o[0] = el.value; }
+  else if(kind==="alt"){ const [p,i] = path.split("|"); edGet(p).o[+i] = el.value; }
+  else if(kind==="sk"){ edSet(path, el.value); }
+  else if(kind==="order"){ const list = S.ed[el.dataset.list]; const id = el.value; const at = list.indexOf(id);
+    if(el.checked && at<0) list.push(id); if(!el.checked && at>=0) list.splice(at,1); }
+  S.edDirty = true; S.edMsg = ""; render();
+}
+function edAdd(which){
+  const id = (which==="id1"?"s1-n":"s2-n") + Date.now().toString(36);
+  const item = which==="id1" ? {id, ans:"cog", o:["cog","glo","dig"], pt:"", en:"", ref:""} : {id, ans:"pc", o:["pc","cr","re"], pt:"", en:"", ref:""};
+  S.ed[which].push(item);
+  if(which==="id1"){ S.ed.k4.push(id); S.ed.s1.push(id); }
+  S.edDirty = true; render();
+  setTimeout(()=>{ const el = document.getElementById("ed-"+id+"-pt"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 30);
+}
+function edDelete(ref){
+  const [which, id] = ref.split(":");
+  S.ed[which] = S.ed[which].filter(x=>x.id!==id);
+  if(which==="id1"){ S.ed.k4 = S.ed.k4.filter(x=>x!==id); S.ed.s1 = S.ed.s1.filter(x=>x!==id); }
+  S.edDel = null; S.edDirty = true; render();
+}
+function edProblems(){
+  const p = [], E = S.ed;
+  const need = (o, where) => { if(!String(o.pt||"").trim()) p.push(where); };
+  for(const st of [1,2]) for(const k of CK) E.stm[st][k].forEach((x,i)=>need(x, t("edSecs").a1f1.replace("K4–Y2", st===1?"K4–Y2":"Y3–Y5")+": "+L(COMPS[k])+" "+(i+1)));
+  for(const st of [1,2]) E.sits[st].forEach((x,i)=>{ need(x, t("edSecs").a1s+" "+(i+1)); x.o.forEach(o=>need(o, t("edSecs").a1s+" "+(i+1))); if(x.o.filter(o=>o.ok).length!==1) p.push(t("edSecs").a1s+" "+(i+1)+": "+t("edNeedOk")); });
+  for(const [w,lbl] of [["id1",t("edSecs").a2s1],["id2",t("edSecs").a2s2]]) E[w].forEach((x,i)=>{ need(x, lbl+" "+(i+1)); if(new Set(x.o).size!==3) p.push(lbl+" "+(i+1)+": "+t("edDup")); });
+  if(!E.k4.length || !E.s1.length) p.push(t("edSecs").a2s1+": "+t("edEmptyList"));
+  return [...new Set(p)];
+}
+async function edSave(){
+  const probs = edProblems();
+  if(probs.length){ S.edMsg = t("edFix")+" "+probs.slice(0,4).join(" · ")+(probs.length>4?" …":""); S.edMsgBad=true; render(); return; }
+  S.edSaving=true; render();
+  try{
+    const doc = clone(S.ed); doc.v = 1;
+    const j = await api("saveContent",{doc},painelCode);
+    applyContent(doc); S.contentVer=j.versao; S.contentAt=j.em;
+    try{ localStorage.setItem("lc-content", JSON.stringify({doc, versao:j.versao})); }catch(e){}
+    S.edDirty=false; S.edMsg=t("edSaved"); S.edMsgBad=false; loadHistory();
+  }catch(e){ S.edMsg = e.status===401 ? t("wrong") : t("netErr"); S.edMsgBad=true; }
+  S.edSaving=false; render();
+}
+async function edResetOriginal(){
+  try{
+    const j = await api("saveContent",{doc:null},painelCode);
+    applyContent(null); S.ed = snapshotContent(); S.contentVer=j.versao; S.edDirty=false; S.edConfirmReset=false; S.edMsg=t("edResetDone"); S.edMsgBad=false;
+    try{ localStorage.setItem("lc-content", JSON.stringify({doc:null, versao:j.versao})); }catch(e){}
+    loadHistory();
+  }catch(e){ S.edMsg=t("netErr"); S.edMsgBad=true; }
+  render();
+}
+async function edLoadVersion(v){
+  try{ const j = await api("getContentVersion",{versao:+v},painelCode);
+    const keep = snapshotContent(); applyContent(j.doc); S.ed = snapshotContent(); applyContent(keep);  // só carrega no editor; nada muda até Salvar
+    S.edDirty = true; S.edMsg = t("edVerLoaded"); S.edMsgBad=false; render(); window.scrollTo(0,0);
+  }catch(e){ S.edMsg=t("netErr"); S.edMsgBad=true; render(); }
+}
+/* campos */
+const fId = p => "ed-"+p.replace(/[^a-z0-9]/gi,"-");
+const fText = (path, label, rows=2) => { const v = edGet(path)??""; return `<label class="edf"><span>${esc(label)}</span><textarea id="${fId(path)}" data-ed="${path}" rows="${rows}">${esc(v)}</textarea></label>`; };
+const fLine = (path, label) => { const v = edGet(path)??""; return `<label class="edf"><span>${esc(label)}</span><input type="text" id="${fId(path)}" data-ed="${path}" value="${esc(v)}"></label>`; };
+const ptEn = (base, rows=2, lbl="") => `<div class="edpair">${fText(base+".pt",(lbl?lbl+" · ":"")+"Português",rows)}${fText(base+".en",(lbl?lbl+" · ":"")+"English",rows)}</div>`;
+const compOpts = sel => CK.map(k=>`<option value="${k}" ${sel===k?"selected":""}>${esc(COMPS[k].pt)}</option>`).join("");
+const skillOpts = sel => CK.map(c=>`<optgroup label="${esc(COMPS[c].pt)}">${Object.entries(SKILLS).filter(([,s])=>s.comp===c).map(([k,s])=>`<option value="${k}" ${sel===k?"selected":""}>${esc(s.pt)}</option>`).join("")}</optgroup>`).join("");
+const ABC = ["A","B","C"];
+function edSituationAuto(st, i){
+  const x = S.ed.sits[st][i], base = `sits.${st}.${i}`;
+  return `<div class="edcard"><div class="edhead"><b>${i+1}.</b><label class="edinline">${esc(t("edSkill"))} <select data-edc="${base}.sk" data-kind="sk">${skillOpts(x.sk)}</select></label></div>
+    ${ptEn(base,2,t("edQuestion"))}
+    ${x.o.map((o,j)=>`<div class="edopt"><label class="edok"><input type="radio" name="ok-${base}" value="${j}" data-edc="${base}.o" data-kind="ok" ${o.ok?"checked":""}> ${esc(t("edExpected"))}</label>${ptEn(`${base}.o.${j}`,1,t("edOption")+" "+(j+1))}</div>`).join("")}
+  </div>`;
+}
+function edSituationId(which, i){
+  const st = which==="id1"?1:2, x = S.ed[which][i], base = `${which}.${i}`, opts = st===1?compOpts:skillOpts;
+  const dup = new Set(x.o).size!==3;
+  const del = S.edDel===which+":"+x.id
+    ? `<span class="edconfirm">${esc(t("edDelAsk"))} <button class="mini del" data-act="edDelYes" data-v="${which}:${esc(x.id)}">${esc(t("yes"))}</button> <button class="mini" data-act="edDelNo">${esc(t("no"))}</button></span>`
+    : `<button class="mini del" data-act="edDelAsk" data-v="${which}:${esc(x.id)}">${esc(t("edRemove"))}</button>`;
+  const lists = st===1 ? `<div class="edchecks">
+      <label><input type="checkbox" data-edc="k4" data-kind="order" data-list="k4" value="${esc(x.id)}" ${S.ed.k4.includes(x.id)?"checked":""}> ${esc(t("edUseK4"))}</label>
+      <label><input type="checkbox" data-edc="s1" data-kind="order" data-list="s1" value="${esc(x.id)}" ${S.ed.s1.includes(x.id)?"checked":""}> ${esc(t("edUseS1"))}</label></div>` : "";
+  return `<div class="edcard${dup?" bad":""}"><div class="edhead"><b>${i+1}.</b>${del}</div>
+    ${ptEn(base,3,t("edSituation"))}
+    <div class="edans">
+      <label class="edf"><span>✓ ${esc(t("edRight"))}</span><select data-edc="${base}" data-kind="ans">${opts(x.ans)}</select></label>
+      <label class="edf"><span>${esc(t(st===1?"edAlt1k":"edAlt1"))}</span><select data-edc="${base}|1" data-kind="alt">${opts(x.o[1])}</select></label>
+      <label class="edf"><span>${esc(t(st===1?"edAlt2k":"edAlt2"))}</span><select data-edc="${base}|2" data-kind="alt">${opts(x.o[2])}</select></label>
+    </div>
+    ${dup?`<p class="edwarn">${esc(t("edDup"))}</p>`:""}
+    ${lists}
+    ${fLine(base+".ref", t("edRef"))}
+  </div>`;
+}
+function renderEditor(){
+  const E = S.ed, sec = S.edSec, secs = t("edSecs");
+  let h = `<div class="edtop">
+    <p class="note" style="margin:0">${esc(t("edIntro"))}</p>
+    <div class="edsecs">${EDSECS.map(k=>`<button data-act="edSec" data-v="${k}" aria-pressed="${sec===k}">${esc(secs[k])}</button>`).join("")}</div></div>`;
+  if(S.edLeave) h += `<div class="exitbar"><span>${esc(t("edLeaveAsk"))}</span><span class="exitbar-btns"><button class="btn small" data-act="edLeaveYes">${esc(t("edLeaveYes"))}</button><button class="btn ghost" data-act="edLeaveNo">${esc(t("edLeaveNo"))}</button></span></div>`;
+  if(sec==="a1f1" || sec==="a1f2"){
+    const st = sec==="a1f1"?1:2;
+    h += `<p class="note">${esc(t("edStmNote"))}</p>` + CK.map(k=>`<div class="edcard" style="--c:var(${COMPS[k].c})"><h3 class="edcomp">${esc(COMPS[k].pt)}</h3>
+      ${E.stm[st][k].map((x,i)=>`<div class="edsub"><span class="edsk">${esc(SKILLS[x.sk].pt)}</span>${ptEn(`stm.${st}.${k}.${i}`,1)}</div>`).join("")}</div>`).join("");
+  }
+  if(sec==="a1s"){
+    h += `<h3 class="edh">K4 – Y2</h3>` + E.sits[1].map((_,i)=>edSituationAuto(1,i)).join("")
+       + `<h3 class="edh">Y3 – Y5</h3>` + E.sits[2].map((_,i)=>edSituationAuto(2,i)).join("")
+       + `<h3 class="edh">${esc(t("edOpenQ"))} (Y3 – Y5)</h3><div class="edcard">${ptEn("open",2)}</div>`;
+  }
+  if(sec==="a2w"){
+    for(const st of [1,2]){
+      h += `<h3 class="edh">${st===1?"K4 – Y2":"Y3 – Y5"}</h3>`;
+      h += `<div class="edcard"><div class="edhead"><b>1.</b></div>${ptEn(`wheel.${st}.0`,2,t("edQuestion"))}${E.wheel[st][0].o.map((o,j)=>`<div class="edopt"><span class="edok">${esc(t("seen")[2-j])}</span>${ptEn(`wheel.${st}.0.o.${j}`,1,t("edOption")+" "+(j+1))}</div>`).join("")}</div>`;
+      h += `<div class="edcard"><div class="edhead"><b>2.</b></div>${ptEn(`wheel.${st}.1`,2,t("edQuestion"))}${E.wheel[st][1].o.map((o,j)=>`<div class="edopt"><label class="edok"><input type="radio" name="ok-w${st}" value="${j}" data-edc="wheel.${st}.1.o" data-kind="ok" ${o.ok?"checked":""}> ${esc(t("edRightShort"))}</label>${ptEn(`wheel.${st}.1.o.${j}`,1,t("edOption")+" "+(j+1))}</div>`).join("")}</div>`;
+    }
+  }
+  if(sec==="a2s1"){
+    h += `<p class="note">${esc(t("edId1Note"))} (${esc(t("edUseK4"))}: ${E.k4.length} · ${esc(t("edUseS1"))}: ${E.s1.length})</p>` + E.id1.map((_,i)=>edSituationId("id1",i)).join("") + `<button class="btn ghost" data-act="edAdd" data-v="id1">+ ${esc(t("edAddSit"))}</button>`;
+  }
+  if(sec==="a2s2"){
+    h += `<p class="note">${esc(t("edId2Note"))}</p>` + E.id2.map((_,i)=>edSituationId("id2",i)).join("") + `<button class="btn ghost" data-act="edAdd" data-v="id2">+ ${esc(t("edAddSit"))}</button>`;
+  }
+  if(sec==="kid"){
+    h += `<p class="note">${esc(t("edKidNote"))}</p><div class="edcard"><h3 class="edcomp">${esc(t("edKidComps"))}</h3>${CK.map(k=>`<div class="edsub"><span class="edsk">${esc(COMPS[k].pt)}</span>${ptEn(`kidc.${k}`,1)}</div>`).join("")}</div>
+      <div class="edcard"><h3 class="edcomp">${esc(t("edKidSkills"))}</h3>${Object.keys(SKILLS).map(k=>`<div class="edsub"><span class="edsk">${esc(COMPS[SKILLS[k].comp].pt)} · ${esc(SKILLS[k].pt)}</span>${ptEn(`kids.${k}`,1)}</div>`).join("")}</div>`;
+  }
+  // histórico
+  if(S.edHist && S.edHist.length) h += `<details class="edhist"><summary>${esc(t("edHist"))}</summary><ul>${S.edHist.map(v=>`<li>${new Date(v.em).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})} — ${v.original?esc(t("edHistOrig")):"v"+v.versao} <button class="mini ev" data-act="edLoadVer" data-v="${v.versao}">${esc(t("edHistLoad"))}</button></li>`).join("")}</ul></details>`;
+  // barra fixa de salvar
+  h += `<div id="ed-savebar" class="edbar${S.edDirty?" dirty":""}">
+    <span class="edstate ${S.edMsgBad?"bad":""}">${esc(S.edMsg || (S.edDirty?t("edUnsaved"):t("edAllSaved")))}</span>
+    <span class="edbtns">
+      ${S.edConfirmReset ? `<span class="edconfirm">${esc(t("edResetAsk"))} <button class="btn small" data-act="edResetYes" style="background:var(--no);color:#fff">${esc(t("edResetYes"))}</button><button class="btn ghost" data-act="edResetNo">${esc(t("no"))}</button></span>`
+        : `<button class="btn ghost" data-act="edReset">${esc(t("edResetBtn"))}</button><button class="btn ghost" data-act="edDiscard" ${S.edDirty?"":"disabled"}>${esc(t("edDiscard"))}</button><button class="btn small" data-act="edSave" ${S.edSaving?"disabled":""}>${S.edSaving?"…":esc(t("edSave"))}</button>`}
+    </span></div>`;
+  return h;
+}
+
 function render(){
   const focusId = document.activeElement?.id, pos = document.activeElement?.selectionStart;
   app.className = ["intro","quiz","end"].includes(S.screen) ? "kid" : "";
@@ -981,8 +1268,24 @@ app.addEventListener("click", async e=>{
   if(a==="lang"){ S.lang=v; savePrefs(); render(); if(S.screen==="quiz"||S.screen==="intro") speakCurrent(); }
   else if(a==="grade"){ S.grade=v; savePrefs(); render(); }
   else if(a==="test"){ S.test=v; savePrefs(); render(); }
-  else if(a==="ptab"){ S.panelTest=v; S.evalId=null; S.confirmDel=null; render(); }
+  else if(a==="ptab"){ if(S.panelTest==="edit" && v!=="edit" && S.edDirty && !S.edLeave){ S.edLeave=v; render(); return; }
+    S.edLeave=null; S.panelTest=v; S.evalId=null; S.confirmDel=null; if(v==="edit") openEditor(); render(); }
+  else if(a==="edLeaveYes"){ const v2=S.edLeave; S.edLeave=null; S.edDirty=false; S.panelTest=v2; render(); }
+  else if(a==="edLeaveNo"){ S.edLeave=null; render(); }
+  else if(a==="edSec"){ S.edSec=v; S.edDel=null; render(); window.scrollTo(0,0); }
+  else if(a==="edSave"){ edSave(); }
+  else if(a==="edDiscard"){ S.ed=snapshotContent(); S.edDirty=false; S.edMsg=t("edDiscarded"); render(); }
+  else if(a==="edReset"){ S.edConfirmReset=true; render(); }
+  else if(a==="edResetNo"){ S.edConfirmReset=false; render(); }
+  else if(a==="edResetYes"){ edResetOriginal(); }
+  else if(a==="edAdd"){ edAdd(v); }
+  else if(a==="edDelAsk"){ S.edDel=v; render(); }
+  else if(a==="edDelNo"){ S.edDel=null; render(); }
+  else if(a==="edDelYes"){ edDelete(v); }
+  else if(a==="edLoadVer"){ edLoadVersion(v); }
+  else if(a==="edPreview"){ S.panelTest="auto"; goStart(); }
   else if(a==="start"){
+    if(pendingContent!==undefined) useContentNow();
     S.idx=0; S.answers={}; S.times={}; S.openText=""; S.perm={}; S.first={}; S.tried={}; S.solved={}; S.fb=null;
     // K4/K5: nas situações, só 2 opções (a certa e a primeira alternativa)
     currentItems().forEach(it=>{ S.perm[it.id]= it.fixed ? it.o.map((_,k)=>k) : (it.t==="ident" && isKid()) ? shuffle(2) : shuffle(it.o.length); });
@@ -1047,11 +1350,13 @@ app.addEventListener("pointerout", e=>{
   hoverPos = -1;
 });
 app.addEventListener("input", e=>{
+  if(e.target.dataset && e.target.dataset.ed!==undefined && S.ed){ edSet(e.target.dataset.ed, e.target.value); S.edDirty=true; S.edMsg=""; const sb=document.getElementById("ed-savebar"); if(sb) sb.classList.add("dirty"); return; }
   if(e.target.id==="f-name"){ S.name=e.target.value; const b=document.getElementById("b-start"); if(b) b.disabled=!(S.grade&&S.name.trim()); }
   if(e.target.id==="f-sec"){ S.section=e.target.value; savePrefs(); }
   if(e.target.id==="f-open"){ S.openText=e.target.value; }
 });
 app.addEventListener("change", e=>{
+  if(e.target.dataset && e.target.dataset.edc!==undefined && S.ed){ edChange(e.target); return; }
   if(e.target.id==="f-pg"){ S.panelGrade=e.target.value; S.panelSection=""; render(); }
   if(e.target.id==="f-ps"){ S.panelSection=e.target.value; render(); }
 });
@@ -1059,7 +1364,8 @@ app.addEventListener("keydown", e=>{
   if(e.key==="Enter" && e.target.id==="f-code"){ e.preventDefault(); app.querySelector('[data-act="enterPanel"]')?.click(); }
   if(e.key==="Enter" && e.target.id==="f-name"){ e.preventDefault(); document.getElementById("b-start")?.click(); }
 });
-function goStart(){ speakToken++; try{speechSynthesis.cancel();}catch(e){} S.confirmExit=false; S.reading=-1; S.fb=null; S.name=""; S.saveMsg=""; S.screen="start"; render(); window.scrollTo(0,0); }
+function goStart(){ if(pendingContent!==undefined){ useContentNow(); } speakToken++; try{speechSynthesis.cancel();}catch(e){} S.confirmExit=false; S.reading=-1; S.fb=null; S.name=""; S.saveMsg=""; S.screen="start"; render(); window.scrollTo(0,0); }
+function useContentNow(){ const d = pendingContent; pendingContent = undefined; try{ applyContent(d); }catch(e){ applyContent(null); } }
 function finish(){ speakToken++; try{speechSynthesis.cancel();}catch(e){} S.screen="end"; render(); saveResponse(); }
 
 function baixar(nome, texto){
