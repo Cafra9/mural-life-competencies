@@ -597,7 +597,7 @@ function applyContent(doc){
 }
 
 const T = {
- pt:{title:"Autoavaliação Life Competencies",grade:"Série",section:"Turma (opcional)",name:"Nome do aluno",namePh:"Primeiro nome e inicial",start:"Começar",
+ pt:{title:"Autoavaliação Life Competencies",grade:"Série",section:"Turma (opcional)",name:"Primeiro nome e iniciais",namePh:"Ex.: Ana B. S.",savedAs:"Fica salvo como:",nameHelp:"Por segurança, só o primeiro nome fica completo; os sobrenomes viram iniciais automaticamente.",start:"Começar",
    wheelChip:"o que você já sabe",wheelAlt:"Roda das Life Competencies da iSP",
    wheelTitle:"O que os alunos já sabem sobre a roda",seen:["Nunca viu","Talvez","Já viu"],seenCol:"Viu a roda",knowsCol:"Sabe o que é",knowsKpi:"entendem o que a roda quer dizer",
    testLbl:"Atividade",tests:{auto:["Autoavaliação","Como o aluno se vê nas competências"],saber:["O que eu sei","Se o aluno conhece a roda e reconhece cada competência"]},
@@ -645,7 +645,7 @@ const T = {
    flagFast:"respondeu rápido demais",flagSame:"escolheu quase sempre a mesma letra",
    agree:"Alunos cuja força principal coincide com a do professor",
    flagsTitle:"Respostas para conversar",flagsNote:"Sinais, não conclusões: vale uma conversa com o aluno."},
- en:{title:"Life Competencies Self-Assessment",grade:"Year group",section:"Class (optional)",name:"Student name",namePh:"First name and initial",start:"Start",
+ en:{title:"Life Competencies Self-Assessment",grade:"Year group",section:"Class (optional)",name:"First name and initials",namePh:"E.g. Ana B. S.",savedAs:"Saved as:",nameHelp:"For safety, only the first name is kept in full; surnames automatically become initials.",start:"Start",
    wheelChip:"what you already know",wheelAlt:"iSP Life Competencies wheel",
    wheelTitle:"What students already know about the wheel",seen:["Never seen","Maybe","Has seen"],seenCol:"Seen the wheel",knowsCol:"Knows what it is",knowsKpi:"understand what the wheel means",
    testLbl:"Activity",tests:{auto:["Self-assessment","How the student sees themselves"],saber:["What I know","Whether the student knows the wheel and recognises each competency"]},
@@ -735,6 +735,15 @@ const skillDesc = (st,key) => st===1
   ? L(COMPS[key])+(isKid()? ": "+L(KIDC[key]).replace(/^./,m=>m.toLowerCase()) : "")
   : L(SKILLS[key])+", "+t("fbThatPart")+" "+L(COMPS[SKILLS[key].comp]);
 const fbNoText = (it,k) => t("fbChose")+" "+skillDesc(stageOf(S.grade), it.o[k].key)+". "+t("fbNotThis")+" "+t("fbNo");
+/* Proteção de dados: guarda só o primeiro nome completo; os sobrenomes viram iniciais ("Ana Beatriz Souza" -> "Ana B. S.") */
+function safeName(raw){
+  const words = String(raw||"").replace(/[^\p{L}\s'-]/gu," ").split(/\s+/).filter(Boolean);
+  if(!words.length) return "";
+  const cap = w => w.charAt(0).toLocaleUpperCase("pt-BR")+w.slice(1).toLocaleLowerCase("pt-BR");
+  const skip = new Set(["de","da","do","das","dos","e","di","du","van","von"]);
+  const rest = words.slice(1).filter(w=>!skip.has(w.toLowerCase())).map(w=>w.replace(/[.'-]/g,"").charAt(0).toLocaleUpperCase("pt-BR")+".").filter(x=>x!==".");
+  return [cap(words[0]).slice(0,20), ...rest.slice(0,4)].join(" ");
+}
 const firstName = () => S.name.trim().split(/\s+/)[0]||"";
 const qText = it => it.t==="forca" ? t(stageOf(S.grade)===1?"qForca1":"qForca2") : L(it);
 
@@ -837,7 +846,7 @@ flushLocal(); setInterval(flushLocal, 60000);
 async function saveResponse(){
   const items = currentItems();
   const rec = {id:"r"+Date.now().toString(36)+Math.random().toString(36).slice(2,6), versao:VERSION,
-    teste:S.test, nome:S.name.trim(), serie:S.grade, turma:S.section.trim(), estagio:stageOf(S.grade), idioma:S.lang,
+    teste:S.test, nome:safeName(S.name), serie:S.grade, turma:S.section.trim(), estagio:stageOf(S.grade), idioma:S.lang,
     data:new Date().toISOString(), duracaoSeg:Math.round((Date.now()-S.startedAt)/1000), itens:{}, aberta:S.openText.trim()};
   for(const it of items){
     const a = (it.t==="ident" && S.first[it.id]!=null) ? S.first[it.id] : S.answers[it.id]; if(a==null) continue;
@@ -913,10 +922,10 @@ function renderStart(){
       <div class="grades">${GRADES.map(g=>`<button data-act="grade" data-v="${g}" aria-pressed="${S.grade===g}">${g}</button>`).join("")}</div></div>
     ${st?`<div class="stagehint">${esc(t((st===1?"s1":"s2")+(S.test==="saber"?"saber":"")))}</div>`:""}
     <div class="row2">
-      <div class="field"><label class="lbl" for="f-name">${esc(t("name"))}</label><input id="f-name" type="text" autocomplete="off" placeholder="${esc(t("namePh"))}" value="${esc(S.name)}"></div>
+      <div class="field"><label class="lbl" for="f-name">${esc(t("name"))}</label><input id="f-name" type="text" autocomplete="off" placeholder="${esc(t("namePh"))}" value="${esc(S.name)}"><span class="note" id="f-name-prev">${S.name.trim()?esc(t("savedAs"))+" <b>"+esc(safeName(S.name))+"</b>":esc(t("nameHelp"))}</span></div>
       <div class="field"><label class="lbl" for="f-sec">${esc(t("section"))}</label><input id="f-sec" type="text" autocomplete="off" placeholder="A, B, Blue…" value="${esc(S.section)}"></div>
     </div>
-    <div><button class="btn" id="b-start" data-act="start" ${S.grade && S.name.trim()?"":"disabled"}>${esc(t("start"))} →</button></div>
+    <div><button class="btn" id="b-start" data-act="start" ${S.grade && safeName(S.name)?"":"disabled"}>${esc(t("start"))} →</button></div>
   </section>
   <div style="text-align:center"><button class="link" data-act="gate">${esc(t("panel"))}</button></div>`;
 }
@@ -1351,7 +1360,8 @@ app.addEventListener("pointerout", e=>{
 });
 app.addEventListener("input", e=>{
   if(e.target.dataset && e.target.dataset.ed!==undefined && S.ed){ edSet(e.target.dataset.ed, e.target.value); S.edDirty=true; S.edMsg=""; const sb=document.getElementById("ed-savebar"); if(sb) sb.classList.add("dirty"); return; }
-  if(e.target.id==="f-name"){ S.name=e.target.value; const b=document.getElementById("b-start"); if(b) b.disabled=!(S.grade&&S.name.trim()); }
+  if(e.target.id==="f-name"){ S.name=e.target.value; const b=document.getElementById("b-start"); if(b) b.disabled=!(S.grade&&safeName(S.name));
+    const pv=document.getElementById("f-name-prev"); if(pv) pv.innerHTML = S.name.trim() ? esc(t("savedAs"))+" <b>"+esc(safeName(S.name))+"</b>" : esc(t("nameHelp")); }
   if(e.target.id==="f-sec"){ S.section=e.target.value; savePrefs(); }
   if(e.target.id==="f-open"){ S.openText=e.target.value; }
 });
