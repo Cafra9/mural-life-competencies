@@ -217,7 +217,7 @@ td.str{text-align:left;font-size:.8rem}
 @media (max-width:700px){.edpair{grid-template-columns:1fr}}
 .edf{display:flex;flex-direction:column;gap:4px;min-width:0}
 .edf>span{font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-.edf textarea,.edf input{font:inherit;font-size:.98rem;line-height:1.4;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box;resize:vertical}
+.edf textarea,.edf input{min-height:0;font:inherit;font-size:.98rem;line-height:1.4;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box;resize:vertical}
 .edf textarea:focus,.edf input:focus{border-color:var(--brand);outline:none}
 .edsub{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--line)}
 .edsub:first-of-type{border-top:0;padding-top:0}
@@ -557,10 +557,14 @@ function snapshotContent(){
            2:WHEEL_Q[2].map(q=>({pt:q.pt,en:q.en,o:q.o.map(o=>({pt:o.pt,en:o.en,ok:o.ok?1:0}))}))},
     id1:ID1.map(x=>({id:x.id,ans:x.ans,o:x.o,pt:x.pt,en:x.en,ref:x.ref||""})),
     id2:ID2.map(x=>({id:x.id,ans:x.ans,o:x.o,pt:x.pt,en:x.en,ref:x.ref||""})),
-    k4:ORDER_K4, s1:ORDER_S1, kidc:KIDC, kids:KIDS
+    k4:ORDER_K4, s1:ORDER_S1, kidc:KIDC, kids:KIDS,
+    names:{comps:Object.fromEntries(CK.map(k=>[k,{pt:COMPS[k].pt,en:COMPS[k].en}])), skills:Object.fromEntries(Object.keys(SKILLS).map(k=>[k,{pt:SKILLS[k].pt,en:SKILLS[k].en}]))},
+    msgs:Object.fromEntries(MSG_KEYS.map(k=>[k,{pt:T.pt[k],en:T.en[k]}]))
   });
 }
-const DEFAULT_CONTENT = snapshotContent();
+/* mensagens faladas/mostradas ao aluno que a coordenação pode editar */
+const MSG_KEYS = ["intro1","intro2","introSaber1","introSaber2","qForca1","qForca2","fbOkStart","fbPartOf","fbChose","fbThatPart","fbNotThis","fbNo","done","doneSub","doneSaber"];
+let DEFAULT_CONTENT;  // definido logo depois dos textos (T)
 const fillArr = (arr, src) => { arr.splice(0, arr.length, ...src); };
 const fillObj = (obj, src) => { Object.keys(obj).forEach(k=>delete obj[k]); Object.assign(obj, src); };
 const txt = (o, d) => ({pt:String(o?.pt ?? d?.pt ?? ""), en:String(o?.en ?? d?.en ?? "")});
@@ -592,6 +596,11 @@ function applyContent(doc){
   fillArr(ORDER_S1, (Array.isArray(c.s1)?c.s1:D.s1).filter(id=>ids1.has(id)));
   // nomes simples para K4/K5
   for(const k of CK) Object.assign(KIDC[k], txt(c.kidc?.[k], D.kidc[k]));
+  // nomes das competências e habilidades (as respostas de "O que eu sei" a partir do Y1, painel e planilha)
+  for(const k of CK){ const n = txt(c.names?.comps?.[k], D.names.comps[k]); COMPS[k].pt = n.pt.trim()||D.names.comps[k].pt; COMPS[k].en = n.en.trim()||D.names.comps[k].en; }
+  for(const k of Object.keys(SKILLS)){ const n = txt(c.names?.skills?.[k], D.names.skills[k]); SKILLS[k].pt = n.pt.trim()||D.names.skills[k].pt; SKILLS[k].en = n.en.trim()||D.names.skills[k].en; }
+  // mensagens ao aluno
+  for(const k of MSG_KEYS){ const m = txt(c.msgs?.[k], D.msgs[k]); T.pt[k] = m.pt.trim()||D.msgs[k].pt; T.en[k] = m.en.trim()||D.msgs[k].en; }
   for(const k of Object.keys(SKILLS)) Object.assign(KIDS[k], txt(c.kids?.[k], D.kids[k]));
   ITEMS.auto[1]=buildItems(1); ITEMS.auto[2]=buildItems(2); ITEMS.saber[1]=buildSaber(1); ITEMS.saber[2]=buildSaber(2);
 }
@@ -619,11 +628,18 @@ const T = {
    savedLocal:"Sem internet agora: as respostas ficaram guardadas neste aparelho e serão enviadas automaticamente quando a conexão voltar.",
    panel:"Painel da coordenação",edTab:"Perguntas",
    edIntro:"Revise e edite os textos e as respostas das duas atividades. Nada muda para os alunos até você tocar em Salvar; depois de salvar, a mudança vale para todos os aparelhos na próxima atividade que começar.",
-   edSecs:{a1f1:"Autoavaliação · frases K4–Y2",a1f2:"Autoavaliação · frases Y3–Y5",a1s:"Autoavaliação · situações",a2w:"O que eu sei · roda",a2s1:"O que eu sei · situações K4–Y2",a2s2:"O que eu sei · situações Y3–Y5",kid:"Nomes simples (K4/K5)"},
+   edSecs:{a1f1:"Autoavaliação · frases K4–Y2",a1f2:"Autoavaliação · frases Y3–Y5",a1s:"Autoavaliação · situações",a2w:"O que eu sei · roda",a2s1:"O que eu sei · situações K4–Y2",a2s2:"O que eu sei · situações Y3–Y5",kid:"Respostas e mensagens"},
    edStmNote:"Cada pergunta mostra 3 frases, uma de cada competência. Aqui você edita o texto de cada frase; a habilidade de cada uma fica fixa.",
    edId1Note:"Para K4 e K5 aparecem só a resposta certa e a 1ª alternativa. Marque em quais séries cada situação aparece.",
    edId2Note:"Dica: use como 1ª alternativa uma habilidade da mesma competência, e como 2ª uma de outra competência. Evite alternativas que também possam ser certas.",
-   edKidNote:"Expressões que aparecem e são lidas para K4 e K5 no lugar dos nomes técnicos.",edKidComps:"Competências",edKidSkills:"Habilidades",
+   edKidNote:"Expressões que aparecem e são lidas para K4 e K5 no lugar dos nomes técnicos.",
+   edRespNote:"Aqui ficam as respostas que o aluno escolhe em \"O que eu sei\" e as mensagens que ele vê e ouve. As respostas são os nomes das competências e habilidades: o nome oficial vale do Y1 ao Y5 (e também no painel e na planilha); o nome simples vale para K4 e K5.",
+   edNameOfficial:"Nome oficial (Y1–Y5)",edNameKid:"Nome simples (K4–K5)",edMsgs:"Mensagens ao aluno",
+   edMsgsNote:"Na mensagem de acerto, o nome da habilidade entra logo depois do texto. Ex.: \"Muito bem, você aprendeu! Essa habilidade se chama\" + \"Curiosidade\".",
+   edMsgInfo:{intro1:"Abertura da autoavaliação · K4–Y2",intro2:"Abertura da autoavaliação · Y3–Y5",introSaber1:"Abertura de O que eu sei · K4–Y2",introSaber2:"Abertura de O que eu sei · Y3–Y5",
+     qForca1:"Pergunta das frases · K4–Y2",qForca2:"Pergunta das frases · Y3–Y5",fbOkStart:"Acerto · início (o nome da habilidade vem depois)",fbPartOf:"Acerto · ligação com a competência (Y3–Y5)",
+     fbChose:"Erro · início (a resposta escolhida vem depois)",fbThatPart:"Erro · ligação com a competência (Y3–Y5)",fbNotThis:"Erro · explicação",fbNo:"Erro · convite para tentar de novo",
+     done:"Tela final · título",doneSub:"Tela final da autoavaliação",doneSaber:"Tela final de O que eu sei"},edKidComps:"Competências",edKidSkills:"Habilidades",
    edQuestion:"Pergunta",edSituation:"Situação",edOption:"Opção",edExpected:"Atitude esperada",edRight:"Resposta certa",edRightShort:"Certa",edSkill:"Habilidade avaliada",
    edAlt1:"1ª alternativa (mesma competência)",edAlt2:"2ª alternativa (outra competência)",edAlt1k:"1ª alternativa (todas as séries)",edAlt2k:"2ª alternativa (só Y1 e Y2)",
    edUseK4:"Usar no K4",edUseS1:"Usar no K5–Y2",edRef:"Base no Quadro Referencial (anotação para a coordenação)",edOpenQ:"Pergunta aberta final",
@@ -667,11 +683,18 @@ const T = {
    savedLocal:"No internet right now: the answers are stored on this device and will be sent automatically when the connection is back.",
    panel:"Coordinator panel",edTab:"Questions",
    edIntro:"Review and edit the texts and answers of both activities. Nothing changes for students until you tap Save; after saving, the change applies on every device from the next activity started.",
-   edSecs:{a1f1:"Self-assessment · sentences K4–Y2",a1f2:"Self-assessment · sentences Y3–Y5",a1s:"Self-assessment · situations",a2w:"What I know · wheel",a2s1:"What I know · situations K4–Y2",a2s2:"What I know · situations Y3–Y5",kid:"Simple names (K4/K5)"},
+   edSecs:{a1f1:"Self-assessment · sentences K4–Y2",a1f2:"Self-assessment · sentences Y3–Y5",a1s:"Self-assessment · situations",a2w:"What I know · wheel",a2s1:"What I know · situations K4–Y2",a2s2:"What I know · situations Y3–Y5",kid:"Answers and messages"},
    edStmNote:"Each question shows 3 sentences, one per competency. Edit the text of each sentence here; the skill of each one is fixed.",
    edId1Note:"For K4 and K5 only the right answer and the 1st alternative appear. Tick which year groups each situation is used in.",
    edId2Note:"Tip: use a skill from the same competency as the 1st alternative, and one from another competency as the 2nd. Avoid alternatives that could also be right.",
-   edKidNote:"Expressions shown and read to K4 and K5 instead of the technical names.",edKidComps:"Competencies",edKidSkills:"Skills",
+   edKidNote:"Expressions shown and read to K4 and K5 instead of the technical names.",
+   edRespNote:"Here are the answers students choose in \"What I know\" and the messages they see and hear. The answers are the competency and skill names: the official name is used from Y1 to Y5 (and in the panel and spreadsheet); the simple name is used for K4 and K5.",
+   edNameOfficial:"Official name (Y1–Y5)",edNameKid:"Simple name (K4–K5)",edMsgs:"Messages to students",
+   edMsgsNote:"In the right-answer message, the skill name comes right after the text. E.g. \"Well done, you learned it! This skill is called\" + \"Curiosity\".",
+   edMsgInfo:{intro1:"Self-assessment opening · K4–Y2",intro2:"Self-assessment opening · Y3–Y5",introSaber1:"What I know opening · K4–Y2",introSaber2:"What I know opening · Y3–Y5",
+     qForca1:"Sentence question · K4–Y2",qForca2:"Sentence question · Y3–Y5",fbOkStart:"Right · start (skill name follows)",fbPartOf:"Right · link to competency (Y3–Y5)",
+     fbChose:"Wrong · start (chosen answer follows)",fbThatPart:"Wrong · link to competency (Y3–Y5)",fbNotThis:"Wrong · explanation",fbNo:"Wrong · invitation to try again",
+     done:"End screen · title",doneSub:"Self-assessment end screen",doneSaber:"What I know end screen"},edKidComps:"Competencies",edKidSkills:"Skills",
    edQuestion:"Question",edSituation:"Situation",edOption:"Option",edExpected:"Expected behaviour",edRight:"Right answer",edRightShort:"Right",edSkill:"Skill assessed",
    edAlt1:"1st alternative (same competency)",edAlt2:"2nd alternative (other competency)",edAlt1k:"1st alternative (shown to all year groups)",edAlt2k:"2nd alternative (Y1 and Y2 only)",
    edUseK4:"Use in K4",edUseS1:"Use in K5–Y2",edRef:"Framework reference (note for coordinators)",edOpenQ:"Final open question",
@@ -694,6 +717,7 @@ const T = {
    agree:"Students whose top strength matches the teacher's",
    flagsTitle:"Answers worth a conversation",flagsNote:"Signals, not conclusions: worth a chat with the student."}
 };
+DEFAULT_CONTENT = snapshotContent();
 
 /* ---------- estado ---------- */
 const S = {first:{},tried:{},solved:{},fb:null,test:"auto",panelTest:"auto",lang:"pt",screen:"start",grade:"",section:"",name:"",idx:0,answers:{},times:{},perm:{},shownAt:0,startedAt:0,openText:"",saveMsg:"",reading:-1,
@@ -1149,6 +1173,8 @@ function edProblems(){
   for(const st of [1,2]) for(const k of CK) E.stm[st][k].forEach((x,i)=>need(x, t("edSecs").a1f1.replace("K4–Y2", st===1?"K4–Y2":"Y3–Y5")+": "+L(COMPS[k])+" "+(i+1)));
   for(const st of [1,2]) E.sits[st].forEach((x,i)=>{ need(x, t("edSecs").a1s+" "+(i+1)); x.o.forEach(o=>need(o, t("edSecs").a1s+" "+(i+1))); if(x.o.filter(o=>o.ok).length!==1) p.push(t("edSecs").a1s+" "+(i+1)+": "+t("edNeedOk")); });
   for(const [w,lbl] of [["id1",t("edSecs").a2s1],["id2",t("edSecs").a2s2]]) E[w].forEach((x,i)=>{ need(x, lbl+" "+(i+1)); if(new Set(x.o).size!==3) p.push(lbl+" "+(i+1)+": "+t("edDup")); });
+  for(const k of CK) need(E.names.comps[k], t("edSecs").kid+": "+DEFAULT_CONTENT.names.comps[k].pt);
+  for(const k of Object.keys(SKILLS)) need(E.names.skills[k], t("edSecs").kid+": "+DEFAULT_CONTENT.names.skills[k].pt);
   if(!E.k4.length || !E.s1.length) p.push(t("edSecs").a2s1+": "+t("edEmptyList"));
   return [...new Set(p)];
 }
@@ -1246,9 +1272,15 @@ function renderEditor(){
     h += `<p class="note">${esc(t("edId2Note"))}</p>` + E.id2.map((_,i)=>edSituationId("id2",i)).join("") + `<button class="btn ghost" data-act="edAdd" data-v="id2">+ ${esc(t("edAddSit"))}</button>`;
   }
   if(sec==="kid"){
-    h += `<p class="note">${esc(t("edKidNote"))}</p><div class="edcard"><h3 class="edcomp">${esc(t("edKidComps"))}</h3>${CK.map(k=>`<div class="edsub"><span class="edsk">${esc(COMPS[k].pt)}</span>${ptEn(`kidc.${k}`,1)}</div>`).join("")}</div>
-      <div class="edcard"><h3 class="edcomp">${esc(t("edKidSkills"))}</h3>${Object.keys(SKILLS).map(k=>`<div class="edsub"><span class="edsk">${esc(COMPS[SKILLS[k].comp].pt)} · ${esc(SKILLS[k].pt)}</span>${ptEn(`kids.${k}`,1)}</div>`).join("")}</div>`;
+    const MSG_INFO = t("edMsgInfo");
+    h += `<p class="note">${esc(t("edRespNote"))}</p>
+      <div class="edcard"><h3 class="edcomp">${esc(t("edKidComps"))}</h3>${CK.map(k=>`<div class="edsub" style="--c:var(${COMPS[k].c})"><span class="edsk">${esc(DEFAULT_CONTENT.names.comps[k].pt)}</span>
+        ${ptEn(`names.comps.${k}`,1,t("edNameOfficial"))}${ptEn(`kidc.${k}`,1,t("edNameKid"))}</div>`).join("")}</div>
+      <div class="edcard"><h3 class="edcomp">${esc(t("edKidSkills"))}</h3>${Object.keys(SKILLS).map(k=>`<div class="edsub" style="--c:var(${COMPS[SKILLS[k].comp].c})"><span class="edsk">${esc(DEFAULT_CONTENT.names.comps[SKILLS[k].comp].pt)} · ${esc(DEFAULT_CONTENT.names.skills[k].pt)}</span>
+        ${ptEn(`names.skills.${k}`,1,t("edNameOfficial"))}${ptEn(`kids.${k}`,1,t("edNameKid"))}</div>`).join("")}</div>
+      <div class="edcard"><h3 class="edcomp">${esc(t("edMsgs"))}</h3><p class="note" style="margin:0">${esc(t("edMsgsNote"))}</p>${MSG_KEYS.map(k=>`<div class="edsub"><span class="edsk">${esc(MSG_INFO[k]||k)}</span>${ptEn(`msgs.${k}`,2)}</div>`).join("")}</div>`;
   }
+
   // histórico
   if(S.edHist && S.edHist.length) h += `<details class="edhist"><summary>${esc(t("edHist"))}</summary><ul>${S.edHist.map(v=>`<li>${new Date(v.em).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})} — ${v.original?esc(t("edHistOrig")):"v"+v.versao} <button class="mini ev" data-act="edLoadVer" data-v="${v.versao}">${esc(t("edHistLoad"))}</button></li>`).join("")}</ul></details>`;
   // barra fixa de salvar
