@@ -240,6 +240,34 @@ td.str{text-align:left;font-size:.8rem}
 .edstate{font-weight:600;font-size:.92rem}
 .edstate.bad{color:var(--no)}
 .edbtns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* perguntas e respostas em formato de tabela */
+.qa{background:var(--surface);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 0 var(--line)}
+.qa.bad{box-shadow:inset 0 0 0 2px var(--no)}
+.qa-shared{background:color-mix(in srgb,var(--brand) 7%,var(--surface))}
+.qa-q{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:start}
+.qa-num{font-family:var(--display);font-weight:800;font-size:1.3rem;width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--surface);display:grid;place-items:center}
+.qa-qtext{font-family:var(--display);font-weight:700;font-size:1.15rem;align-self:center}
+.qa-qfields{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+.qa-qfields label,.qa-side,.qa-ref{display:flex;flex-direction:column;gap:4px;min-width:0}
+.qa-qfields span,.qa-side>span,.qa-ref>span{font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.qa textarea,.qa input[type=text],.qa select{font:inherit;font-size:.98rem;line-height:1.35;padding:7px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);width:100%;box-sizing:border-box;min-height:0;resize:vertical}
+.qa textarea:focus,.qa input[type=text]:focus,.qa select:focus{border-color:var(--brand);outline:none}
+.qa-qfields textarea{font-family:var(--display);font-weight:700;font-size:1.05rem}
+.qa-t{border:2px solid var(--line);border-radius:12px;overflow:hidden;margin-left:52px}
+.qa-tr{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr) minmax(0,1fr);gap:10px;padding:8px 10px;border-top:1px solid var(--line);align-items:start}
+.qa-tr:first-child{border-top:0}
+.qa-th{background:var(--bg);font-size:.72rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);padding-block:6px}
+.qa-tr>span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.qa-tr small{font-size:.72rem;font-weight:600;color:var(--muted)}
+.qa-right{background:color-mix(in srgb,var(--ok) 9%,var(--surface))}
+.qa-nokid .qa-role::after{content:"";}
+.qa-lead .tag{align-self:flex-start;margin:0}
+.qa-role{font-size:.8rem;font-weight:700;color:var(--muted)}
+.qa-role.ok{color:var(--ok)}
+.qa-ok{display:flex;align-items:center;gap:6px;font-weight:600;font-size:.88rem;padding-top:6px}
+.qa-foot{display:flex;flex-direction:column;gap:10px;margin-left:52px}
+@media (max-width:760px){.qa-q{grid-template-columns:32px minmax(0,1fr)}.qa-side{grid-column:1/-1}.qa-qfields{grid-template-columns:1fr}.qa-t,.qa-foot{margin-left:0}.qa-tr{grid-template-columns:1fr}.qa-th{display:none}}
+.qa textarea{field-sizing:content;min-height:2.6em;max-height:12em}
 </style>
 
 </head>
@@ -626,12 +654,18 @@ const T = {
    listen:"Repetir",audioOn:"Ligar o áudio",audioOff:"Desligar o áudio",audioIsOn:"Áudio ligado",exit2:"Sair",exitAsk:"Sair da atividade? As respostas desta atividade não serão salvas.",exitYes:"Sim, sair",exitNo:"Continuar respondendo",audioIsOff:"Áudio desligado",next1:"Próxima",check:"Conferir",fbOkStart:"Muito bem, você aprendeu! Essa habilidade se chama",fbPartOf:"e faz parte de",fbNo:"Você pode continuar aprendendo! Volte e escolha outra resposta para descobrir.",fbChose:"Você escolheu",fbThatPart:"que faz parte de",fbNotThis:"Essa não é a habilidade desta situação.",back:"Voltar",finish:"Terminar",openPh:"Escreva aqui (opcional)",
    done:"Muito bem!",doneSub:"Obrigado por responder com sinceridade!",next:"Próximo aluno",saving:"Salvando…",saved:"Respostas salvas.",
    savedLocal:"Sem internet agora: as respostas ficaram guardadas neste aparelho e serão enviadas automaticamente quando a conexão voltar.",
-   panel:"Painel da coordenação",edTab:"Perguntas",
+   panel:"Painel da coordenação",edTab:"Perguntas e Respostas",
    edIntro:"Revise e edite os textos e as respostas das duas atividades. Nada muda para os alunos até você tocar em Salvar; depois de salvar, a mudança vale para todos os aparelhos na próxima atividade que começar.",
-   edSecs:{a1f1:"Autoavaliação · frases K4–Y2",a1f2:"Autoavaliação · frases Y3–Y5",a1s:"Autoavaliação · situações",a2w:"O que eu sei · roda",a2s1:"O que eu sei · situações K4–Y2",a2s2:"O que eu sei · situações Y3–Y5",kid:"Respostas e mensagens"},
+   edSecs:{a1s1:"Autoavaliação · K4–Y2",a1s2:"Autoavaliação · Y3–Y5",a2s1:"O que eu sei · K4–Y2",a2s2:"O que eu sei · Y3–Y5"},
+   edAnswer:"Resposta",edCompSkill:"Competência · habilidade",edExpectedShort:"Esperada",edMeaning:"Significa",edRole:"Papel",
+   edRowRight:"Certa",edRowAlt1:"Alternativa 1 (mesma competência)",edRowAlt2:"Alternativa 2 (outra competência)",edRowAlt1k:"Alternativa 1 (todas as séries)",edRowAlt2k:"Alternativa 2 (só Y1–Y2)",
+   edSeesKid:"K4–K5 vê:",edSeesY12:"Y1–Y2 vê:",edForcaQ:"Pergunta das frases (igual em todas)",
+   edForcaNote:"Nas perguntas de frases não existe resposta certa: o aluno escolhe a que mais tem a ver com ele. Cada frase representa uma competência.",
+   edOpenNote:"Pergunta aberta final, opcional. O aluno escreve a resposta.",
+   edEmptyQuestion:"há uma pergunta sem texto",edEmptyAnswer:"há uma resposta sem texto",edEmptyName:"Nome de resposta vazio:",
    edStmNote:"Cada pergunta mostra 3 frases, uma de cada competência. Aqui você edita o texto de cada frase; a habilidade de cada uma fica fixa.",
-   edId1Note:"Para K4 e K5 aparecem só a resposta certa e a 1ª alternativa. Marque em quais séries cada situação aparece.",
-   edId2Note:"Dica: use como 1ª alternativa uma habilidade da mesma competência, e como 2ª uma de outra competência. Evite alternativas que também possam ser certas.",
+   edId1Note:"Cada pergunta aparece com as respostas embaixo, na ordem em que o aluno vê. Nas situações, as respostas são nomes de competências: escolha a competência de cada linha e ajuste como ela aparece. Atenção: esses nomes são os mesmos em todas as perguntas, então mudar o texto aqui muda em todas. K4 e K5 veem só as duas primeiras linhas.",
+   edId2Note:"Cada pergunta aparece com as respostas embaixo. Nas situações, as respostas são nomes de habilidades: escolha a habilidade de cada linha e ajuste como ela aparece (o nome muda em todas as perguntas). Dica: alternativa 1 da mesma competência, alternativa 2 de outra, e nenhuma que também possa ser certa.",
    edKidNote:"Expressões que aparecem e são lidas para K4 e K5 no lugar dos nomes técnicos.",
    edRespNote:"Aqui ficam as respostas que o aluno escolhe em \"O que eu sei\" e as mensagens que ele vê e ouve. As respostas são os nomes das competências e habilidades: o nome oficial vale do Y1 ao Y5 (e também no painel e na planilha); o nome simples vale para K4 e K5.",
    edNameOfficial:"Nome oficial (Y1–Y5)",edNameKid:"Nome simples (K4–K5)",edMsgs:"Mensagens ao aluno",
@@ -681,12 +715,18 @@ const T = {
    listen:"Repeat",audioOn:"Turn sound on",audioOff:"Turn sound off",audioIsOn:"Sound on",exit2:"Exit",exitAsk:"Leave the activity? The answers to this activity will not be saved.",exitYes:"Yes, leave",exitNo:"Keep answering",audioIsOff:"Sound off",next1:"Next",check:"Check",fbOkStart:"Well done, you learned it! This skill is called",fbPartOf:"and it is part of",fbNo:"You can keep learning! Go back and choose another answer to find out.",fbChose:"You chose",fbThatPart:"which is part of",fbNotThis:"That is not the skill in this situation.",back:"Back",finish:"Finish",openPh:"Write here (optional)",
    done:"Well done!",doneSub:"Thank you for answering honestly.",next:"Next student",saving:"Saving…",saved:"Answers saved.",
    savedLocal:"No internet right now: the answers are stored on this device and will be sent automatically when the connection is back.",
-   panel:"Coordinator panel",edTab:"Questions",
+   panel:"Coordinator panel",edTab:"Questions and Answers",
    edIntro:"Review and edit the texts and answers of both activities. Nothing changes for students until you tap Save; after saving, the change applies on every device from the next activity started.",
-   edSecs:{a1f1:"Self-assessment · sentences K4–Y2",a1f2:"Self-assessment · sentences Y3–Y5",a1s:"Self-assessment · situations",a2w:"What I know · wheel",a2s1:"What I know · situations K4–Y2",a2s2:"What I know · situations Y3–Y5",kid:"Answers and messages"},
+   edSecs:{a1s1:"Self-assessment · K4–Y2",a1s2:"Self-assessment · Y3–Y5",a2s1:"What I know · K4–Y2",a2s2:"What I know · Y3–Y5"},
+   edAnswer:"Answer",edCompSkill:"Competency · skill",edExpectedShort:"Expected",edMeaning:"Means",edRole:"Role",
+   edRowRight:"Right",edRowAlt1:"Alternative 1 (same competency)",edRowAlt2:"Alternative 2 (other competency)",edRowAlt1k:"Alternative 1 (all year groups)",edRowAlt2k:"Alternative 2 (Y1–Y2 only)",
+   edSeesKid:"K4–K5 see:",edSeesY12:"Y1–Y2 see:",edForcaQ:"Sentence question (same in all)",
+   edForcaNote:"Sentence questions have no right answer: the student picks the one most like them. Each sentence stands for a competency.",
+   edOpenNote:"Final open question, optional. The student writes the answer.",
+   edEmptyQuestion:"a question has no text",edEmptyAnswer:"an answer has no text",edEmptyName:"Empty answer name:",
    edStmNote:"Each question shows 3 sentences, one per competency. Edit the text of each sentence here; the skill of each one is fixed.",
-   edId1Note:"For K4 and K5 only the right answer and the 1st alternative appear. Tick which year groups each situation is used in.",
-   edId2Note:"Tip: use a skill from the same competency as the 1st alternative, and one from another competency as the 2nd. Avoid alternatives that could also be right.",
+   edId1Note:"Each question shows its answers underneath, in the order students see them. In situations, answers are competency names: pick the competency for each row and adjust how it appears. Note: names are shared by all questions, so changing the text here changes it everywhere. K4 and K5 see only the first two rows.",
+   edId2Note:"Each question shows its answers underneath. In situations, answers are skill names: pick the skill for each row and adjust how it appears (the name changes in every question). Tip: alternative 1 from the same competency, alternative 2 from another, and none that could also be right.",
    edKidNote:"Expressions shown and read to K4 and K5 instead of the technical names.",
    edRespNote:"Here are the answers students choose in \"What I know\" and the messages they see and hear. The answers are the competency and skill names: the official name is used from Y1 to Y5 (and in the panel and spreadsheet); the simple name is used for K4 and K5.",
    edNameOfficial:"Official name (Y1–Y5)",edNameKid:"Simple name (K4–K5)",edMsgs:"Messages to students",
@@ -1138,8 +1178,8 @@ function renderSaber(rows){
 }
 
 /* ---------- editor de perguntas ---------- */
-const EDSECS = ["a1f1","a1f2","a1s","a2w","a2s1","a2s2","kid"];
-function openEditor(){ if(!S.ed || !S.edDirty) S.ed = snapshotContent(); S.edSec = S.edSec || "a1f1"; S.edMsg=""; S.edConfirmReset=false; loadHistory(); }
+const EDSECS = ["a1s1","a1s2","a2s1","a2s2"];
+function openEditor(){ if(!S.ed || !S.edDirty) S.ed = snapshotContent(); S.edSec = EDSECS.includes(S.edSec) ? S.edSec : "a1s1"; S.edMsg=""; S.edConfirmReset=false; loadHistory(); }
 async function loadHistory(){ try{ const j = await api("contentHistory",{},painelCode); S.edHist = j.versoes||[]; if(S.panelTest==="edit") render(); }catch(e){} }
 function edGet(path){ return path.split(".").reduce((o,k)=>o==null?undefined:o[k], S.ed); }
 function edSet(path, val){ const ks=path.split("."); const last=ks.pop(); const o=ks.reduce((o,k)=>o[k], S.ed); o[last]=val; }
@@ -1168,14 +1208,17 @@ function edDelete(ref){
   S.edDel = null; S.edDirty = true; render();
 }
 function edProblems(){
-  const p = [], E = S.ed;
-  const need = (o, where) => { if(!String(o.pt||"").trim()) p.push(where); };
-  for(const st of [1,2]) for(const k of CK) E.stm[st][k].forEach((x,i)=>need(x, t("edSecs").a1f1.replace("K4–Y2", st===1?"K4–Y2":"Y3–Y5")+": "+L(COMPS[k])+" "+(i+1)));
-  for(const st of [1,2]) E.sits[st].forEach((x,i)=>{ need(x, t("edSecs").a1s+" "+(i+1)); x.o.forEach(o=>need(o, t("edSecs").a1s+" "+(i+1))); if(x.o.filter(o=>o.ok).length!==1) p.push(t("edSecs").a1s+" "+(i+1)+": "+t("edNeedOk")); });
-  for(const [w,lbl] of [["id1",t("edSecs").a2s1],["id2",t("edSecs").a2s2]]) E[w].forEach((x,i)=>{ need(x, lbl+" "+(i+1)); if(new Set(x.o).size!==3) p.push(lbl+" "+(i+1)+": "+t("edDup")); });
-  for(const k of CK) need(E.names.comps[k], t("edSecs").kid+": "+DEFAULT_CONTENT.names.comps[k].pt);
-  for(const k of Object.keys(SKILLS)) need(E.names.skills[k], t("edSecs").kid+": "+DEFAULT_CONTENT.names.skills[k].pt);
-  if(!E.k4.length || !E.s1.length) p.push(t("edSecs").a2s1+": "+t("edEmptyList"));
+  const p = [], E = S.ed, secs = t("edSecs");
+  const need = (o, where) => { if(!String(o?.pt||"").trim()) p.push(where); };
+  for(const st of [1,2]){
+    const lbl = secs[st===1?"a1s1":"a1s2"];
+    for(const k of CK) E.stm[st][k].forEach(x=>need(x, lbl+": "+t("edEmptyAnswer")));
+    E.sits[st].forEach((x,i)=>{ need(x, lbl+": "+t("edEmptyQuestion")); x.o.forEach(o=>need(o, lbl+": "+t("edEmptyAnswer"))); if(x.o.filter(o=>o.ok).length!==1) p.push(lbl+": "+t("edNeedOk")); });
+  }
+  for(const [w,sec] of [["id1","a2s1"],["id2","a2s2"]]) E[w].forEach((x,i)=>{ need(x, secs[sec]+" "+(i+1)+": "+t("edEmptyQuestion")); if(new Set(x.o).size!==3) p.push(secs[sec]+" "+(i+1)+": "+t("edDup")); });
+  for(const k of CK) need(E.names.comps[k], t("edEmptyName")+" "+DEFAULT_CONTENT.names.comps[k].pt);
+  for(const k of Object.keys(SKILLS)) need(E.names.skills[k], t("edEmptyName")+" "+DEFAULT_CONTENT.names.skills[k].pt);
+  if(!E.k4.length || !E.s1.length) p.push(secs.a2s1+": "+t("edEmptyList"));
   return [...new Set(p)];
 }
 async function edSave(){
@@ -1206,84 +1249,98 @@ async function edLoadVersion(v){
     S.edDirty = true; S.edMsg = t("edVerLoaded"); S.edMsgBad=false; render(); window.scrollTo(0,0);
   }catch(e){ S.edMsg=t("netErr"); S.edMsgBad=true; render(); }
 }
-/* campos */
-const fId = p => "ed-"+p.replace(/[^a-z0-9]/gi,"-");
-const fText = (path, label, rows=2) => { const v = edGet(path)??""; return `<label class="edf"><span>${esc(label)}</span><textarea id="${fId(path)}" data-ed="${path}" rows="${rows}">${esc(v)}</textarea></label>`; };
-const fLine = (path, label) => { const v = edGet(path)??""; return `<label class="edf"><span>${esc(label)}</span><input type="text" id="${fId(path)}" data-ed="${path}" value="${esc(v)}"></label>`; };
-const ptEn = (base, rows=2, lbl="") => `<div class="edpair">${fText(base+".pt",(lbl?lbl+" · ":"")+"Português",rows)}${fText(base+".en",(lbl?lbl+" · ":"")+"English",rows)}</div>`;
-const compOpts = sel => CK.map(k=>`<option value="${k}" ${sel===k?"selected":""}>${esc(COMPS[k].pt)}</option>`).join("");
-const skillOpts = sel => CK.map(c=>`<optgroup label="${esc(COMPS[c].pt)}">${Object.entries(SKILLS).filter(([,s])=>s.comp===c).map(([k,s])=>`<option value="${k}" ${sel===k?"selected":""}>${esc(s.pt)}</option>`).join("")}</optgroup>`).join("");
-const ABC = ["A","B","C"];
-function edSituationAuto(st, i){
-  const x = S.ed.sits[st][i], base = `sits.${st}.${i}`;
-  return `<div class="edcard"><div class="edhead"><b>${i+1}.</b><label class="edinline">${esc(t("edSkill"))} <select data-edc="${base}.sk" data-kind="sk">${skillOpts(x.sk)}</select></label></div>
-    ${ptEn(base,2,t("edQuestion"))}
-    ${x.o.map((o,j)=>`<div class="edopt"><label class="edok"><input type="radio" name="ok-${base}" value="${j}" data-edc="${base}.o" data-kind="ok" ${o.ok?"checked":""}> ${esc(t("edExpected"))}</label>${ptEn(`${base}.o.${j}`,1,t("edOption")+" "+(j+1))}</div>`).join("")}
-  </div>`;
+/* campos: cada pergunta aparece com as respostas logo embaixo, em formato de tabela */
+let edUid = 0;
+const fIn = (path, ph="", shared=false, rows=1) => { const v = edGet(path)??""; const id = "ed-"+(edUid++);
+  return rows>1 ? `<textarea id="${id}" data-ed="${path}" rows="${rows}" placeholder="${esc(ph)}"${shared?' data-shared="1"':""}>${esc(v)}</textarea>`
+    : `<input type="text" id="${id}" data-ed="${path}" value="${esc(v)}" placeholder="${esc(ph)}"${shared?' data-shared="1"':""}>`; };
+const compOpts = sel => CK.map(k=>`<option value="${k}" ${sel===k?"selected":""}>${esc(S.ed.names.comps[k].pt)}</option>`).join("");
+const skillOpts = sel => CK.map(c=>`<optgroup label="${esc(S.ed.names.comps[c].pt)}">${Object.entries(SKILLS).filter(([,s])=>s.comp===c).map(([k])=>`<option value="${k}" ${sel===k?"selected":""}>${esc(S.ed.names.skills[k].pt)}</option>`).join("")}</optgroup>`).join("");
+/* bloco de pergunta (PT/EN) */
+const qBlock = (num, path, extraHead="", ph="") => `<div class="qa-q"><div class="qa-num">${num}</div>
+  <div class="qa-qfields"><label><span>${esc(t("edQuestion"))} · PT</span>${fIn(path+".pt",ph,false,2)}</label><label><span>${esc(t("edQuestion"))} · EN</span>${fIn(path+".en",ph,false,2)}</label></div>${extraHead}</div>`;
+/* tabela de respostas: rows = [{lead:html, pt:path, en:path, cls}] */
+const aTable = (rows, firstCol) => `<div class="qa-t"><div class="qa-tr qa-th"><span>${esc(firstCol)}</span><span>${esc(t("edAnswer"))} · PT</span><span>${esc(t("edAnswer"))} · EN</span></div>
+  ${rows.map(r=>`<div class="qa-tr ${r.cls||""}"><span class="qa-lead">${r.lead}</span><span>${r.ptHtml||fIn(r.pt,"",!!r.shared,r.shared?1:2)}</span><span>${r.enHtml||fIn(r.en,"",!!r.shared,r.shared?1:2)}</span></div>`).join("")}</div>`;
+const okRadio = (name, path, j, on) => `<label class="qa-ok"><input type="radio" name="${name}" value="${j}" data-edc="${path}" data-kind="ok" ${on?"checked":""}> ${esc(t("edRightShort"))}</label>`;
+/* ordem real em que o aluno vê as perguntas da autoavaliação */
+function autoOrder(st){
+  const used = {cog:0,glo:0,dig:0,aut:0,int:0};
+  const tri = TRIADS.map((cs,k)=>({t:"forca",k,o:cs.map(c=>({c,i:used[c]++}))}));
+  const sits = S.ed.sits[st].map((_,i)=>({t:"cena",i}));
+  const out = []; const gap = Math.ceil(tri.length/(sits.length+1));
+  tri.forEach((it,k)=>{ out.push(it); if((k+1)%gap===0 && sits.length) out.push(sits.shift()); });
+  return out.concat(sits);
 }
-function edSituationId(which, i){
-  const st = which==="id1"?1:2, x = S.ed[which][i], base = `${which}.${i}`, opts = st===1?compOpts:skillOpts;
-  const dup = new Set(x.o).size!==3;
+function edAutoSection(st){
+  const E = S.ed; let n = 0;
+  let h = `<div class="qa qa-shared"><div class="qa-q"><div class="qa-num">★</div><div class="qa-qfields">
+      <label><span>${esc(t("edForcaQ"))} · PT</span>${fIn(`msgs.qForca${st}.pt`)}</label><label><span>${esc(t("edForcaQ"))} · EN</span>${fIn(`msgs.qForca${st}.en`)}</label></div></div>
+      <p class="note" style="margin:0">${esc(t("edForcaNote"))}</p></div>`;
+  for(const it of autoOrder(st)){
+    n++;
+    if(it.t==="forca"){
+      h += `<div class="qa"><div class="qa-q"><div class="qa-num">${n}</div><div class="qa-qtext">${esc(L({pt:E.msgs["qForca"+st].pt,en:E.msgs["qForca"+st].en}))}</div></div>
+        ${aTable(it.o.map(({c,i})=>{ const sk = E.stm[st][c][i].sk; return {lead:`<span class="tag" style="--c:var(${COMPS[c].c})">${esc(E.names.comps[c].pt)}</span><small>${esc(E.names.skills[sk].pt)}</small>`, pt:`stm.${st}.${c}.${i}.pt`, en:`stm.${st}.${c}.${i}.en`}; }), t("edCompSkill"))}</div>`;
+    } else {
+      const x = E.sits[st][it.i], base = `sits.${st}.${it.i}`;
+      h += `<div class="qa">${qBlock(n, base, `<label class="qa-side"><span>${esc(t("edSkill"))}</span><select data-edc="${base}.sk" data-kind="sk">${skillOpts(x.sk)}</select></label>`)}
+        ${aTable(x.o.map((o,j)=>({lead:okRadio("ok-"+base, base+".o", j, o.ok), pt:`${base}.o.${j}.pt`, en:`${base}.o.${j}.en`, cls:o.ok?"qa-right":""})), t("edExpectedShort"))}</div>`;
+    }
+  }
+  if(st===2){ n++; h += `<div class="qa">${qBlock(n, "open")}<p class="note" style="margin:0">${esc(t("edOpenNote"))}</p></div>`; }
+  return h;
+}
+function edWheel(st){
+  const E = S.ed;
+  return `<div class="qa">${qBlock("1", `wheel.${st}.0`)}${aTable(E.wheel[st][0].o.map((o,j)=>({lead:esc(t("seen")[2-j]), pt:`wheel.${st}.0.o.${j}.pt`, en:`wheel.${st}.0.o.${j}.en`})), t("edMeaning"))}</div>
+    <div class="qa">${qBlock("2", `wheel.${st}.1`)}${aTable(E.wheel[st][1].o.map((o,j)=>({lead:okRadio("ok-w"+st, `wheel.${st}.1.o`, j, o.ok), pt:`wheel.${st}.1.o.${j}.pt`, en:`wheel.${st}.1.o.${j}.en`, cls:o.ok?"qa-right":""})), t("edRightShort"))}</div>`;
+}
+function edIdent(which, i, num){
+  const st = which==="id1"?1:2, E = S.ed, x = E[which][i], base = `${which}.${i}`, dup = new Set(x.o).size!==3;
   const del = S.edDel===which+":"+x.id
     ? `<span class="edconfirm">${esc(t("edDelAsk"))} <button class="mini del" data-act="edDelYes" data-v="${which}:${esc(x.id)}">${esc(t("yes"))}</button> <button class="mini" data-act="edDelNo">${esc(t("no"))}</button></span>`
     : `<button class="mini del" data-act="edDelAsk" data-v="${which}:${esc(x.id)}">${esc(t("edRemove"))}</button>`;
+  const roles = st===1 ? [t("edRowRight"), t("edRowAlt1k"), t("edRowAlt2k")] : [t("edRowRight"), t("edRowAlt1"), t("edRowAlt2")];
+  const rows = x.o.map((key,j)=>{
+    const sel = `<select data-edc="${j===0?base:base+"|"+j}" data-kind="${j===0?"ans":"alt"}">${st===1?compOpts(key):skillOpts(key)}</select>`;
+    const lead = `<span class="qa-role ${j===0?"ok":""}">${j===0?"✓ ":""}${esc(roles[j])}</span>${sel}`;
+    if(st===1){
+      const kidRow = j<2;  // K4/K5 veem só as duas primeiras
+      return {lead, cls:(j===0?"qa-right":"")+(kidRow?"":" qa-nokid"),
+        ptHtml:`${kidRow?`<small>${esc(t("edSeesKid"))}</small>${fIn(`kidc.${key}.pt`,"",true)}`:""}<small>${esc(t("edSeesY12"))}</small>${fIn(`names.comps.${key}.pt`,"",true)}`,
+        enHtml:`${kidRow?`<small>${esc(t("edSeesKid"))}</small>${fIn(`kidc.${key}.en`,"",true)}`:""}<small>${esc(t("edSeesY12"))}</small>${fIn(`names.comps.${key}.en`,"",true)}`};
+    }
+    return {lead, cls:j===0?"qa-right":"", pt:`names.skills.${key}.pt`, en:`names.skills.${key}.en`, shared:true};
+  });
   const lists = st===1 ? `<div class="edchecks">
-      <label><input type="checkbox" data-edc="k4" data-kind="order" data-list="k4" value="${esc(x.id)}" ${S.ed.k4.includes(x.id)?"checked":""}> ${esc(t("edUseK4"))}</label>
-      <label><input type="checkbox" data-edc="s1" data-kind="order" data-list="s1" value="${esc(x.id)}" ${S.ed.s1.includes(x.id)?"checked":""}> ${esc(t("edUseS1"))}</label></div>` : "";
-  return `<div class="edcard${dup?" bad":""}"><div class="edhead"><b>${i+1}.</b>${del}</div>
-    ${ptEn(base,3,t("edSituation"))}
-    <div class="edans">
-      <label class="edf"><span>✓ ${esc(t("edRight"))}</span><select data-edc="${base}" data-kind="ans">${opts(x.ans)}</select></label>
-      <label class="edf"><span>${esc(t(st===1?"edAlt1k":"edAlt1"))}</span><select data-edc="${base}|1" data-kind="alt">${opts(x.o[1])}</select></label>
-      <label class="edf"><span>${esc(t(st===1?"edAlt2k":"edAlt2"))}</span><select data-edc="${base}|2" data-kind="alt">${opts(x.o[2])}</select></label>
-    </div>
+      <label><input type="checkbox" data-edc="k4" data-kind="order" data-list="k4" value="${esc(x.id)}" ${E.k4.includes(x.id)?"checked":""}> ${esc(t("edUseK4"))}</label>
+      <label><input type="checkbox" data-edc="s1" data-kind="order" data-list="s1" value="${esc(x.id)}" ${E.s1.includes(x.id)?"checked":""}> ${esc(t("edUseS1"))}</label></div>` : "";
+  return `<div class="qa${dup?" bad":""}">${qBlock(num, base, `<div class="qa-side">${del}</div>`)}
+    ${aTable(rows, t("edRole"))}
     ${dup?`<p class="edwarn">${esc(t("edDup"))}</p>`:""}
-    ${lists}
-    ${fLine(base+".ref", t("edRef"))}
-  </div>`;
+    <div class="qa-foot">${lists}<label class="qa-ref"><span>${esc(t("edRef"))}</span>${fIn(base+".ref")}</label></div></div>`;
 }
 function renderEditor(){
+  edUid = 0;
   const E = S.ed, sec = S.edSec, secs = t("edSecs");
   let h = `<div class="edtop">
     <p class="note" style="margin:0">${esc(t("edIntro"))}</p>
     <div class="edsecs">${EDSECS.map(k=>`<button data-act="edSec" data-v="${k}" aria-pressed="${sec===k}">${esc(secs[k])}</button>`).join("")}</div></div>`;
   if(S.edLeave) h += `<div class="exitbar"><span>${esc(t("edLeaveAsk"))}</span><span class="exitbar-btns"><button class="btn small" data-act="edLeaveYes">${esc(t("edLeaveYes"))}</button><button class="btn ghost" data-act="edLeaveNo">${esc(t("edLeaveNo"))}</button></span></div>`;
-  if(sec==="a1f1" || sec==="a1f2"){
-    const st = sec==="a1f1"?1:2;
-    h += `<p class="note">${esc(t("edStmNote"))}</p>` + CK.map(k=>`<div class="edcard" style="--c:var(${COMPS[k].c})"><h3 class="edcomp">${esc(COMPS[k].pt)}</h3>
-      ${E.stm[st][k].map((x,i)=>`<div class="edsub"><span class="edsk">${esc(SKILLS[x.sk].pt)}</span>${ptEn(`stm.${st}.${k}.${i}`,1)}</div>`).join("")}</div>`).join("");
-  }
-  if(sec==="a1s"){
-    h += `<h3 class="edh">K4 – Y2</h3>` + E.sits[1].map((_,i)=>edSituationAuto(1,i)).join("")
-       + `<h3 class="edh">Y3 – Y5</h3>` + E.sits[2].map((_,i)=>edSituationAuto(2,i)).join("")
-       + `<h3 class="edh">${esc(t("edOpenQ"))} (Y3 – Y5)</h3><div class="edcard">${ptEn("open",2)}</div>`;
-  }
-  if(sec==="a2w"){
-    for(const st of [1,2]){
-      h += `<h3 class="edh">${st===1?"K4 – Y2":"Y3 – Y5"}</h3>`;
-      h += `<div class="edcard"><div class="edhead"><b>1.</b></div>${ptEn(`wheel.${st}.0`,2,t("edQuestion"))}${E.wheel[st][0].o.map((o,j)=>`<div class="edopt"><span class="edok">${esc(t("seen")[2-j])}</span>${ptEn(`wheel.${st}.0.o.${j}`,1,t("edOption")+" "+(j+1))}</div>`).join("")}</div>`;
-      h += `<div class="edcard"><div class="edhead"><b>2.</b></div>${ptEn(`wheel.${st}.1`,2,t("edQuestion"))}${E.wheel[st][1].o.map((o,j)=>`<div class="edopt"><label class="edok"><input type="radio" name="ok-w${st}" value="${j}" data-edc="wheel.${st}.1.o" data-kind="ok" ${o.ok?"checked":""}> ${esc(t("edRightShort"))}</label>${ptEn(`wheel.${st}.1.o.${j}`,1,t("edOption")+" "+(j+1))}</div>`).join("")}</div>`;
-    }
-  }
+  if(sec==="a1s1") h += edAutoSection(1);
+  if(sec==="a1s2") h += edAutoSection(2);
   if(sec==="a2s1"){
-    h += `<p class="note">${esc(t("edId1Note"))} (${esc(t("edUseK4"))}: ${E.k4.length} · ${esc(t("edUseS1"))}: ${E.s1.length})</p>` + E.id1.map((_,i)=>edSituationId("id1",i)).join("") + `<button class="btn ghost" data-act="edAdd" data-v="id1">+ ${esc(t("edAddSit"))}</button>`;
+    h += `<p class="note">${esc(t("edId1Note"))}</p>` + edWheel(1);
+    E.id1.forEach((_,i)=>{ h += edIdent("id1", i, String(i+3)); });
+    h += `<button class="btn ghost" data-act="edAdd" data-v="id1">+ ${esc(t("edAddSit"))}</button>`;
   }
   if(sec==="a2s2"){
-    h += `<p class="note">${esc(t("edId2Note"))}</p>` + E.id2.map((_,i)=>edSituationId("id2",i)).join("") + `<button class="btn ghost" data-act="edAdd" data-v="id2">+ ${esc(t("edAddSit"))}</button>`;
+    h += `<p class="note">${esc(t("edId2Note"))}</p>` + edWheel(2);
+    E.id2.forEach((_,i)=>{ h += edIdent("id2", i, String(i+3)); });
+    h += `<button class="btn ghost" data-act="edAdd" data-v="id2">+ ${esc(t("edAddSit"))}</button>`;
   }
-  if(sec==="kid"){
-    const MSG_INFO = t("edMsgInfo");
-    h += `<p class="note">${esc(t("edRespNote"))}</p>
-      <div class="edcard"><h3 class="edcomp">${esc(t("edKidComps"))}</h3>${CK.map(k=>`<div class="edsub" style="--c:var(${COMPS[k].c})"><span class="edsk">${esc(DEFAULT_CONTENT.names.comps[k].pt)}</span>
-        ${ptEn(`names.comps.${k}`,1,t("edNameOfficial"))}${ptEn(`kidc.${k}`,1,t("edNameKid"))}</div>`).join("")}</div>
-      <div class="edcard"><h3 class="edcomp">${esc(t("edKidSkills"))}</h3>${Object.keys(SKILLS).map(k=>`<div class="edsub" style="--c:var(${COMPS[SKILLS[k].comp].c})"><span class="edsk">${esc(DEFAULT_CONTENT.names.comps[SKILLS[k].comp].pt)} · ${esc(DEFAULT_CONTENT.names.skills[k].pt)}</span>
-        ${ptEn(`names.skills.${k}`,1,t("edNameOfficial"))}${ptEn(`kids.${k}`,1,t("edNameKid"))}</div>`).join("")}</div>
-      <div class="edcard"><h3 class="edcomp">${esc(t("edMsgs"))}</h3><p class="note" style="margin:0">${esc(t("edMsgsNote"))}</p>${MSG_KEYS.map(k=>`<div class="edsub"><span class="edsk">${esc(MSG_INFO[k]||k)}</span>${ptEn(`msgs.${k}`,2)}</div>`).join("")}</div>`;
-  }
-
-  // histórico
   if(S.edHist && S.edHist.length) h += `<details class="edhist"><summary>${esc(t("edHist"))}</summary><ul>${S.edHist.map(v=>`<li>${new Date(v.em).toLocaleString("pt-BR",{dateStyle:"short",timeStyle:"short"})} — ${v.original?esc(t("edHistOrig")):"v"+v.versao} <button class="mini ev" data-act="edLoadVer" data-v="${v.versao}">${esc(t("edHistLoad"))}</button></li>`).join("")}</ul></details>`;
-  // barra fixa de salvar
   h += `<div id="ed-savebar" class="edbar${S.edDirty?" dirty":""}">
     <span class="edstate ${S.edMsgBad?"bad":""}">${esc(S.edMsg || (S.edDirty?t("edUnsaved"):t("edAllSaved")))}</span>
     <span class="edbtns">
@@ -1399,6 +1456,7 @@ app.addEventListener("input", e=>{
 });
 app.addEventListener("change", e=>{
   if(e.target.dataset && e.target.dataset.edc!==undefined && S.ed){ edChange(e.target); return; }
+  if(e.target.dataset && e.target.dataset.shared && S.ed){ const y = window.scrollY; render(); window.scrollTo(0,y); return; }
   if(e.target.id==="f-pg"){ S.panelGrade=e.target.value; S.panelSection=""; render(); }
   if(e.target.id==="f-ps"){ S.panelSection=e.target.value; render(); }
 });
