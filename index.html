@@ -538,6 +538,43 @@ img,video{max-width:100%}
 .adm-head h2{font-family:var(--display);color:var(--accent);margin:0;font-size:1.5rem}
 .adm-head p{margin:2px 0 0}
 .adm-head-act{display:flex;gap:8px;align-items:center}
+.adm-charts{background:var(--surface,#fff);border:1px solid var(--line);border-radius:14px;padding:16px}
+.adm-ch-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.adm-ch-head h3{margin:0 0 2px;font-family:var(--display);color:var(--accent)}
+.adm-ch-head p{margin:0}
+.adm-ch-filtros{display:flex;gap:8px;flex-wrap:wrap}
+.adm-ch-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;margin-top:14px}
+@media (max-width:760px){.adm-ch-grid{grid-template-columns:1fr}}
+.adm-ch-card{border:1px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.adm-ch-card h4{margin:0 0 10px;font-size:.95rem}
+.adm-ch-bars{display:flex;flex-direction:column;gap:6px}
+.adm-ch-row{display:grid;grid-template-columns:minmax(120px,210px) 1fr 64px;gap:10px;align-items:center;font-size:.88rem}
+.adm-ch-row.zero{opacity:.55}
+.adm-ch-lbl{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.adm-ch-area{display:none}
+.adm-ch-track{height:16px;background:var(--soft);border-radius:4px;overflow:hidden}
+.adm-ch-bar{display:block;height:100%;border-radius:4px}
+.adm-ch-n{text-align:right;white-space:nowrap}
+@media (max-width:520px){.adm-ch-row{grid-template-columns:110px 1fr 54px;font-size:.8rem}}
+.adm-ch-areas{display:flex;gap:10px;align-items:flex-end;height:200px}
+.adm-ch-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;min-width:0}
+.adm-ch-colv{font-weight:700;font-size:.85rem}
+.adm-ch-coltrack{flex:1;width:100%;max-width:44px;display:flex;align-items:flex-end;background:var(--soft);border-radius:4px;overflow:hidden}
+.adm-ch-colbar{display:block;width:100%;border-radius:4px 4px 0 0}
+.adm-ch-coll{font-size:.68rem;text-align:center;line-height:1.1;overflow-wrap:normal;word-break:keep-all;white-space:normal;max-width:100%}
+.adm-ch-filtros select{width:auto;min-width:170px}
+@media (max-width:520px){.adm-ch-filtros select{width:100%}}
+.adm-ch-nota{margin:10px 0 0}
+.adm-folder{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 16px;border:1.5px solid var(--accent);border-radius:14px;background:var(--surface,#fff);cursor:pointer;font:inherit;color:inherit}
+.adm-folder:hover{background:var(--soft)}
+.adm-folder-ico{width:44px;height:34px;border-radius:6px;background:var(--accent);opacity:.85;position:relative;flex:none}
+.adm-folder-ico::before{content:"";position:absolute;left:0;top:-6px;width:18px;height:8px;border-radius:4px 4px 0 0;background:inherit}
+.adm-folder-txt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.adm-folder-txt strong{font-size:1.1rem}
+.adm-folder-alert{background:#e9a227;color:#3a2600;font-weight:700;font-size:.82rem;border-radius:999px;padding:4px 10px}
+.adm-folder-arrow{font-size:1.2rem;color:var(--accent);transition:transform .15s}
+.adm-folder.open .adm-folder-arrow{transform:rotate(90deg)}
+.adm-arq{display:flex;flex-direction:column;gap:12px;border-left:3px solid var(--accent);padding-left:12px}
 .adm-help{margin:0;color:var(--muted);font-size:.92rem}
 .adm-filters{display:grid;grid-template-columns:repeat(3,minmax(0,170px)) minmax(0,1fr);gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
 .adm-filters label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;font-weight:600;color:var(--muted)}
@@ -757,6 +794,14 @@ body.is-dragging .tile-group,body.is-dragging .grp-panel{outline:2px dashed var(
       <div><h2>Administração do mural</h2><p class="small" id="adm-count"></p></div>
       <div class="adm-head-act"><button type="button" class="link" id="adm-sair">Sair da área</button><button type="button" class="primary" id="adm-close">Voltar ao mural</button></div>
     </header>
+    <section class="adm-charts" id="adm-charts" aria-label="Habilidades que mais aparecem"></section>
+    <button type="button" class="adm-folder" id="adm-arq-btn" aria-expanded="false" aria-controls="adm-arq">
+      <span class="adm-folder-ico" aria-hidden="true"></span>
+      <span class="adm-folder-txt"><strong>Arquivos</strong><span class="small" id="adm-arq-info"></span></span>
+      <span class="adm-folder-alert" id="adm-arq-alert" hidden></span>
+      <span class="adm-folder-arrow" aria-hidden="true">▸</span>
+    </button>
+    <div class="adm-arq" id="adm-arq" hidden>
     <section class="adm-pend" id="adm-pend" hidden></section>
     <p class="adm-help">Marque as atividades que devem aparecer no mural para todos. Desmarcadas ficam escondidas, mas não são apagadas, e você pode voltar a mostrá-las quando quiser. As alterações são salvas na hora.</p>
     <div class="adm-filters">
@@ -767,6 +812,7 @@ body.is-dragging .tile-group,body.is-dragging .grp-panel{outline:2px dashed var(
     </div>
     <div class="adm-bulk"><span class="small" id="adm-shown"></span><button type="button" id="adm-all-on">Mostrar todas da lista</button><button type="button" id="adm-all-off">Ocultar todas da lista</button></div>
     <div class="adm-list" id="adm-list"></div>
+    </div>
   </div>
 </div>
 <div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="Imagem ampliada">
@@ -1950,7 +1996,54 @@ function admPendentes(){
   });
   box.append(g);
 }
+const ARQ_KEY="mural.admArquivos";
+function admArqAberto(v){if(v!==undefined){try{sessionStorage.setItem(ARQ_KEY,v?"1":"")}catch{}}let a=false;try{a=!!sessionStorage.getItem(ARQ_KEY)}catch{}return a}
+function admFolder(){
+  const docs=[...(window.__admDocs||new Map()).values()].filter(d=>!d.excluidoEm);
+  const vis=docs.filter(d=>d.visivel!==false).length;
+  let pend=0;docs.forEach(d=>(d.evidencias||[]).forEach(v=>{if(v.pendente)pend++}));
+  $("adm-arq-info").textContent=docs.length+(docs.length===1?" atividade":" atividades")+" · "+vis+" visíveis no mural";
+  const al=$("adm-arq-alert");al.hidden=!pend;al.textContent=pend+(pend===1?" foto aguarda aprovação":" fotos aguardam aprovação");
+  const aberto=admArqAberto();$("adm-arq").hidden=!aberto;$("adm-arq-btn").setAttribute("aria-expanded",String(aberto));$("adm-arq-btn").classList.toggle("open",aberto);
+}
+let admChartSerie="",admChartTodas=false;
+function admCharts(){
+  const box=$("adm-charts");box.textContent="";
+  const docs=[...(window.__admDocs||new Map()).values()].filter(d=>!d.excluidoEm&&(admChartTodas||d.visivel!==false))
+    .filter(d=>{if(!admChartSerie)return true;const sr=seriesOf(d);const f=filterSeries(admChartSerie);return admChartSerie===TODAS_SERIES?isAll(sr):sr.some(x=>f.includes(x))});
+  const cnt={};SKILLS.forEach(k=>cnt[k.nome]=0);
+  docs.forEach(d=>{const ns=d.modo==="todas"?SKILLS.map(k=>k.nome):(d.competencias||[]).map(c=>c.nome);new Set(ns).forEach(n=>{if(n in cnt)cnt[n]++})});
+  const fs=el("select",{"aria-label":"Série"});fs.append(el("option",{value:"",text:"Todas as séries"}));
+  SEGMENTOS.forEach(g=>fs.append(el("optgroup",{label:g.nome},el("option",{value:"seg:"+g.id,text:"Todo o "+g.nome}),g.anos.map(x=>el("option",{value:x,text:x})))));
+  fs.value=admChartSerie;fs.addEventListener("change",()=>{admChartSerie=fs.value;admCharts()});
+  const ft=el("select",{"aria-label":"Quais atividades"});ft.append(el("option",{value:"",text:"Só as visíveis no mural"}),el("option",{value:"1",text:"Todas, inclusive ocultas"}));
+  ft.value=admChartTodas?"1":"";ft.addEventListener("change",()=>{admChartTodas=!!ft.value;admCharts()});
+  box.append(el("div",{class:"adm-ch-head"},el("div",{},el("h3",{text:"Habilidades que mais aparecem"}),el("p",{class:"small",text:docs.length+(docs.length===1?" atividade considerada":" atividades consideradas")+". Cada barra mostra em quantas atividades a habilidade aparece."})),el("div",{class:"adm-ch-filtros"},fs,ft)));
+  if(!docs.length){box.append(el("p",{class:"small",text:"Nenhuma atividade com esse filtro."}));return}
+  const max=Math.max(1,...Object.values(cnt));
+  const ord=SKILLS.slice().sort((a,b)=>cnt[b.nome]-cnt[a.nome]||a.nome.localeCompare(b.nome));
+  const bars=el("div",{class:"adm-ch-bars"});
+  ord.forEach(k=>{const n=cnt[k.nome],pc=Math.round(n*100/docs.length);
+    bars.append(el("div",{class:"adm-ch-row"+(n?"":" zero"),title:k.nome+": "+n+" de "+docs.length+" atividades ("+pc+"%)"},
+      el("span",{class:"adm-ch-lbl"},el("span",{class:"lc-dot",style:`background:${k.bg}`}),k.nome,el("span",{class:"adm-ch-area",text:k.grupo})),
+      el("span",{class:"adm-ch-track"},el("span",{class:"adm-ch-bar",style:`width:${n?Math.max(2,n*100/max):0}%;background:${k.bg}`})),
+      el("span",{class:"adm-ch-n"},el("b",{text:String(n)}),el("span",{class:"small",text:" "+pc+"%"}))));
+  });
+  // por área
+  const areas=LC.map(g=>({g:g.g,bg:g.bg,n:docs.filter(d=>{const ns=d.modo==="todas"?SKILLS.map(k=>k.nome):(d.competencias||[]).map(c=>c.nome);return ns.some(n=>(skillOf(n)||{}).grupo===g.g)}).length})).sort((a,b)=>b.n-a.n);
+  const amax=Math.max(1,...areas.map(a=>a.n));
+  const ab=el("div",{class:"adm-ch-areas"},areas.map(a=>el("div",{class:"adm-ch-col",title:a.g+": "+a.n+" atividades"},
+    el("span",{class:"adm-ch-colv",text:String(a.n)}),
+    el("span",{class:"adm-ch-coltrack"},el("span",{class:"adm-ch-colbar",style:`height:${a.n?Math.max(3,a.n*100/amax):0}%;background:${a.bg}`})),
+    el("span",{class:"adm-ch-coll",text:a.g}))));
+  const pouco=ord.filter(k=>cnt[k.nome]===0).map(k=>k.nome);
+  box.append(el("div",{class:"adm-ch-grid"},
+    el("div",{class:"adm-ch-card"},el("h4",{text:"Por habilidade"}),bars),
+    el("div",{class:"adm-ch-card"},el("h4",{text:"Por área"}),ab,
+      pouco.length?el("p",{class:"small adm-ch-nota",text:"Ainda sem nenhuma atividade: "+pouco.join(", ")+"."}):null)));
+}
 function admRender(){
+  admFolder();admCharts();
   admPendentes();
   const vis=admRows.filter(r=>r.visivel).length;
   $("adm-count").textContent=vis+" de "+admRows.length+" atividades visíveis no mural";
@@ -1999,6 +2092,7 @@ $("btn-admin").addEventListener("click",()=>{history.replaceState(null,"","#admi
 $("adm-cancel").addEventListener("click",closeAdmin);
 $("adm-close").addEventListener("click",closeAdmin);
 $("adm-sair").addEventListener("click",()=>{admCode="";window.__admHdr="";try{sessionStorage.removeItem(ADM_KEY);localStorage.removeItem(ADM_KEY)}catch{}closeAdmin()});
+$("adm-arq-btn").addEventListener("click",()=>{admArqAberto(!admArqAberto());admFolder();if(admArqAberto())$("adm-arq").scrollIntoView({behavior:"smooth",block:"start"})});
 $("adm-form").addEventListener("submit",async e=>{
   e.preventDefault();const v=$("adm-code").value.trim();if(!v)return;
   const b=$("adm-enter");b.disabled=true;b.textContent="Verificando…";admCode=v;
