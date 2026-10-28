@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icone-192.png">
 <link rel="apple-touch-icon" href="icone-180.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Autoavaliação Life Competencies</title>
+<title>Avaliação Life Competencies</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Lexend:wght@400;500;600&display=swap">
@@ -268,6 +268,25 @@ td.str{text-align:left;font-size:.8rem}
 .qa-foot{display:flex;flex-direction:column;gap:10px;margin-left:52px}
 @media (max-width:760px){.qa-q{grid-template-columns:32px minmax(0,1fr)}.qa-side{grid-column:1/-1}.qa-qfields{grid-template-columns:1fr}.qa-t,.qa-foot{margin-left:0}.qa-tr{grid-template-columns:1fr}.qa-th{display:none}}
 .qa textarea{field-sizing:content;min-height:2.6em;max-height:12em}
+
+/* avaliação do avanço */
+.faces{display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
+.faces span{display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--display);font-weight:700;font-size:1.1rem}
+.faces b{font-size:3rem;line-height:1}
+.opt .dot.face{font-size:2.6rem;width:64px;height:64px}
+.lvbar{display:flex;height:24px;border-radius:7px;overflow:hidden;min-width:200px;background:var(--line)}
+.lvbar span{display:grid;place-items:center;font-size:.72rem;font-weight:600;color:var(--lvl-ink);overflow:hidden;white-space:nowrap}
+.l1{background:var(--lvl1)} .l2{background:var(--lvl2)} .l3{background:var(--lvl3)}
+.lv{display:inline-block;border-radius:5px;padding:0 5px;font-size:.72rem;font-weight:700;color:var(--lvl-ink);margin-left:3px}
+.lv.l0{background:none;color:var(--muted);font-weight:400}
+td.avc{font-size:1.05rem;padding-inline:5px}
+td.avc.gap{box-shadow:inset 0 0 0 2px var(--flag)}
+td.sk{text-align:left;white-space:normal;min-width:170px}
+.avkey{display:flex;flex-direction:column;gap:8px}
+.avkey ul{margin:0;padding-left:0;list-style:none;display:flex;gap:8px;flex-wrap:wrap}
+.avkey li{border-radius:10px;padding:6px 10px;font-size:.88rem;color:var(--lvl-ink)}
+.avt th.c{white-space:normal;min-width:64px;max-width:96px;line-height:1.2}
+.evalrow .desc{font-size:.88rem;color:var(--ink);opacity:.85}
 </style>
 
 </head>
@@ -424,8 +443,10 @@ const WHEEL_Q = {
 const OPEN_Q = {pt:"Conte uma coisa que você aprendeu a fazer melhor este ano.",en:"Tell us one thing you learned to do better this year."};
 const POSNAME = {pt:["A","B","C"],en:["A","B","C"]};
 const SPOKEN = {pt:["Letra A:","Letra B:","Letra C:"],en:["A:","B:","C:"]};
-const GRADES = ["K4","K5","Y1","Y2","Y3","Y4","Y5"];
-const stageOf = g => ["K4","K5","Y1","Y2"].includes(g) ? 1 : 2;
+const GRADES = ["K4","K5","Y1","Y2","Y3","Y4","Y5","Y6","Y7","Y8","Y9","Y10","Y11","Y12","Y13"];
+const stageOf = g => ["K4","K5","Y1","Y2"].includes(g) ? 1 : ["Y3","Y4","Y5","Y6"].includes(g) ? 2 : ["Y7","Y8","Y9"].includes(g) ? 3 : 4;
+const STAGE_LBL = {1:"K4–Y2",2:"Y3–Y6",3:"Y7–Y9",4:"Y10–Y13"};
+const gradesFor = test => test==="saber" ? GRADES.slice(0,8) : GRADES;  // "O que eu sei" só existe para os estágios 1 e 2
 const API = "https://cuuctkmbtanyxipjqkqq.supabase.co/functions/v1/lc-avaliacao-api";
 const FAST_MS = 3500;   // a voz leva ~8 s para ler as 3 opções; abaixo disso, provavelmente não ouviu
 const VERSION = 3;
@@ -570,8 +591,153 @@ const KIDS = {
 };
 /* Atividade 2: cada opção tem um desenho no lugar da letra */
 const ICOMP = {cog:"🧠",glo:"🌍",dig:"🚀",aut:"🌱",int:"🤝"};
+/* =====================================================================
+   ATIVIDADE "AVALIAÇÃO DO AVANÇO DOS ALUNOS" (base: Quadro Referencial iSP, estágios 1 a 4)
+   Aluno: uma frase por habilidade (15 por estágio), escrita a partir do exemplo de
+   "Dominando" daquele estágio. Responde com carinhas: 🙁 Ainda não / 😐 Às vezes / 😄 Sim
+   = Iniciando / Desenvolvendo / Dominando (no Quadro, o que muda entre os níveis é a
+   independência: só com ajuda → às vezes, com incentivo → sozinho e sempre).
+   Professor: no painel, vê o que "Dominando" significa naquele estágio e marca o nível observado.
+   ===================================================================== */
+const AV_SK = ["pc","cr","cu","ci","ac","ic","al","re","in","co","aa","be","se","cm","cl"];
+const AV_RAW = {
+ 1:[
+  ["Quando escuto uma história, eu pergunto por quê e como as coisas acontecem.","When I hear a story, I ask why and how things happen.",
+   "Faz perguntas de “por quê” e “como” sobre histórias e aulas; distingue o real do imaginário; prevê o que vai acontecer e explica por quê.","Asks “why” and “how” about stories and lessons; tells real from make-believe; predicts what will happen and explains why."],
+  ["Eu invento minhas próprias ideias para brincar e criar.","I come up with my own ideas to play and make things.",
+   "Imagina situações e dá vida a elas; tem ideias próprias sem precisar de modelo; sugere ideias para melhorar algo.","Imagines situations and brings them to life; has own ideas without needing a model; suggests ways to improve something."],
+  ["Quando vejo uma coisa nova, eu quero descobrir mais e faço perguntas.","When I see something new, I want to find out more and I ask questions.",
+   "Explora coisas novas e faz perguntas por iniciativa própria; tenta maneiras diferentes de resolver um problema.","Explores new things and asks questions on own initiative; tries different ways to solve a problem."],
+  ["Eu sigo as regras da sala e sei por que elas são importantes.","I follow the class rules and I know why they matter.",
+   "Segue as regras sabendo explicar por quê; conhece os ajudantes da comunidade; participa de reciclagem e limpeza.","Follows rules and can explain why; knows community helpers; takes part in recycling and clean-ups."],
+  ["Quando vejo um problema na sala, eu falo e dou uma ideia para resolver.","When I see a problem in class, I say so and suggest an idea to fix it.",
+   "Ajuda a decidir atividades da turma; cumpre suas tarefas da sala; aponta problemas e sugere soluções simples.","Helps decide class activities; does own class jobs; points out problems and suggests simple solutions."],
+  ["Eu sei contar coisas de outros países, como comidas, línguas e festas.","I can tell things about other countries, like food, languages and festivals.",
+   "Compartilha fatos de outros países (idiomas, comidas, feriados); é gentil e acolhedor com colegas de outras origens.","Shares facts about other countries (languages, food, holidays); is kind and welcoming to classmates from other backgrounds."],
+  ["Eu consigo ligar o tablet, abrir o aplicativo e usar sozinho.","I can turn on the tablet, open the app and use it by myself.",
+   "Liga e desliga, abre aplicativos, digita e desenha; usa jogos e vídeos educativos com autonomia.","Turns devices on and off, opens apps, types and draws; uses educational games and videos independently."],
+  ["Eu uso telas só na hora combinada e chamo um adulto se aparecer algo estranho.","I use screens only at the agreed time and call an adult if something strange appears.",
+   "Segue as regras de quando e como usar telas; não compartilha dados pessoais; avisa um adulto quando vê algo estranho.","Follows rules on when and how to use screens; doesn't share personal details; tells an adult when something seems strange."],
+  ["Eu consigo fazer um personagem ou robô se mexer com blocos de programação.","I can make a character or robot move using coding blocks.",
+   "Usa programação em blocos para mover um personagem; cria arte ou música no tablet.","Uses block coding to move a character; creates art or music on the tablet."],
+  ["Eu tento coisas novas, mesmo quando parecem difíceis.","I try new things, even when they look hard.",
+   "Fala sobre o que gosta; tenta coisas novas mesmo quando são difíceis; pergunta quando não entende.","Talks about what they like; tries new things even when hard; asks when they don't understand."],
+  ["Eu consigo contar o que aprendi e o que foi fácil ou difícil.","I can tell what I learned and what was easy or hard.",
+   "Conta o que aprendeu e o que achou fácil ou difícil; explica como resolveu um problema; pede ajuda e usa o retorno recebido.","Says what they learned and what was easy or hard; explains how they solved a problem; asks for help and uses feedback."],
+  ["Eu lavo as mãos, escovo os dentes e cuido de mim sem precisar que me lembrem.","I wash my hands, brush my teeth and look after myself without being reminded.",
+   "Fala sobre os próprios sentimentos; é ativo; segue as rotinas de cuidado (lavar as mãos, escovar os dentes, dormir na hora).","Talks about own feelings; is active; follows self-care routines (washing hands, brushing teeth, bedtime)."],
+  ["Eu sei dizer como estou me sentindo e percebo quando um amigo está triste.","I can say how I feel and I notice when a friend is sad.",
+   "Nomeia os próprios sentimentos e os dos outros; diz o que sente e pede o que precisa com respeito.","Names own and others' feelings; says how they feel and asks for what they need respectfully."],
+  ["Eu escuto os amigos e conto minhas ideias de um jeito que todo mundo entende.","I listen to my friends and share my ideas in a way everyone understands.",
+   "Compartilha ideias com clareza; ouve e faz perguntas; conta histórias com frases completas.","Shares ideas clearly; listens and asks questions; tells stories in full sentences."],
+  ["Nas brincadeiras em grupo, eu espero a minha vez e divido os materiais.","In group games, I wait for my turn and share materials.",
+   "Ouve as ideias dos amigos e acrescenta as suas; espera a vez e divide materiais; segue as regras de jogos em grupo.","Listens to friends' ideas and adds their own; takes turns and shares materials; follows group game rules."]
+ ],
+ 2:[
+  ["Antes de acreditar numa informação, eu comparo fontes diferentes para ver se é verdade.","Before believing information, I compare different sources to see if it's true.",
+   "Compara fontes para decidir o que é verdade; avalia se as ideias dos outros fazem sentido; identifica o essencial de um problema.","Compares sources to decide what is true; judges whether others' ideas make sense; identifies the core of a problem."],
+  ["Eu penso em várias ideias e escolho a melhor para resolver um problema.","I think of several ideas and choose the best one to solve a problem.",
+   "Faz brainstorm e escolhe uma solução; cria em grupo; produz algo diferente de tudo o que já fez.","Brainstorms and chooses a solution; creates in a group; makes something different from anything they've made before."],
+  ["Quando um assunto me interessa, eu procuro livros e sites para aprender mais sozinho.","When a topic interests me, I look for books and websites to learn more on my own.",
+   "Escolhe um tema e busca livros e recursos por conta própria; discute soluções alternativas; explora disciplinas para descobrir do que gosta.","Chooses a topic and finds books and resources independently; discusses alternative solutions; explores subjects to discover interests."],
+  ["Eu participo das eleições e decisões da escola e sei explicar para que elas servem.","I take part in school elections and decisions and can explain what they are for.",
+   "Explica funções do governo local; participa das eleições da escola; faz serviço comunitário.","Explains roles of local government; takes part in school elections; does community service."],
+  ["Quando começo um projeto para melhorar algo, eu planejo e vou até o fim.","When I start a project to improve something, I plan it and see it through.",
+   "Planeja e executa pequenos projetos até o fim; discute problemas e soluções; participa de ações de mudança (limpezas, campanhas).","Plans and carries out small projects to the end; discusses problems and solutions; joins change actions (clean-ups, campaigns)."],
+  ["Eu comparo a minha vida com a de crianças de outros lugares e entendo que cada um vê o mundo de um jeito.","I compare my life with children from other places and understand that everyone sees the world differently.",
+   "Compara a própria vida com a de crianças de outros lugares; apresenta algo de uma cultura; discute como a origem muda o ponto de vista.","Compares own life with children elsewhere; presents something about a culture; discusses how background shapes viewpoint."],
+  ["Eu faço apresentações, documentos e pesquisas no computador sem precisar de ajuda.","I make presentations, documents and searches on the computer without help.",
+   "Cria apresentações, documentos e gráficos; pesquisa com palavras-chave; usa softwares educacionais.","Creates presentations, documents and charts; searches with keywords; uses educational software."],
+  ["Eu sei o que não devo compartilhar na internet e evito links suspeitos.","I know what not to share online and I avoid suspicious links.",
+   "Sabe o que não compartilhar (endereço, telefone); reconhece e evita links suspeitos; segue as regras da escola sobre internet.","Knows what not to share (address, phone); recognises and avoids suspicious links; follows school internet rules."],
+  ["Eu crio jogos ou histórias interativas usando programação em blocos.","I create games or interactive stories using block coding.",
+   "Cria histórias interativas e jogos em blocos; faz arte digital ou música mais elaboradas; monta robótica e circuitos simples com orientação.","Creates interactive stories and block-based games; makes more complex digital art or music; builds simple robots and circuits with guidance."],
+  ["Eu dou a minha opinião e apresento para a turma sem medo de errar.","I give my opinion and present to the class without being afraid of mistakes.",
+   "Dá opinião sem medo de errar; apresenta para grupos grandes (assembleias); encara desafios como competições e clubes.","Gives opinions without fear of being wrong; presents to large groups (assemblies); takes on challenges like competitions and clubs."],
+  ["Quando um jeito de estudar não funciona, eu percebo e troco de estratégia.","When a way of studying isn't working, I notice and change strategy.",
+   "Fala com segurança sobre como aprendeu; explica as estratégias que usa e por quê; percebe quando está travado e muda de estratégia.","Talks confidently about how they learned; explains strategies used and why; notices when stuck and changes strategy."],
+  ["Eu cuido do meu sono e da alimentação e faço atividades que me ajudam a relaxar.","I look after my sleep and food and do activities that help me relax.",
+   "Identifica atividades que o acalmam; explica por que alimentação e sono importam; usa técnicas de relaxamento.","Identifies calming activities; explains why food and sleep matter; uses relaxation techniques."],
+  ["Quando fico bravo ou chateado, eu consigo me acalmar e conversar, e ajudo colegas que precisam.","When I'm angry or upset, I can calm down and talk, and I help classmates who need it.",
+   "Controla as emoções e se acalma de forma saudável; demonstra empatia e oferece ajuda; divide responsabilidades no grupo.","Manages emotions and calms down in healthy ways; shows empathy and offers help; shares responsibilities in the group."],
+  ["Eu consigo apresentar um tema e escrever instruções que os outros entendem sem dúvida.","I can present a topic and write instructions others understand without doubt.",
+   "Apresenta um tema com pôsteres ou ferramentas digitais; escreve instruções claras e detalhadas; discute respeitando a vez de falar.","Presents a topic with posters or digital tools; writes clear, detailed instructions; discusses while respecting turns."],
+  ["No trabalho em grupo, eu ajudo a combinar quem faz o quê e a resolver desentendimentos.","In group work, I help agree who does what and sort out disagreements.",
+   "Organiza a tarefa para que todos saibam o que fazer; resolve desentendimentos conversando; usa o retorno do grupo.","Organises the task so everyone knows what to do; resolves disagreements by talking; uses group feedback."]
+ ],
+ 3:[
+  ["Eu avalio se uma fonte é confiável antes de usá-la e justifico minhas conclusões com evidências.","I check whether a source is reliable before using it and back my conclusions with evidence.",
+   "Avalia a confiabilidade de fontes; organiza e apresenta o pensamento com clareza; analisa decisões (de personagens, de pessoas) com evidências.","Evaluates source reliability; organises and presents thinking clearly; analyses decisions (of characters, people) with evidence."],
+  ["Eu combino ideias de matérias diferentes para criar algo novo e uso as críticas para melhorar meu trabalho.","I combine ideas from different subjects to create something new and use feedback to improve my work.",
+   "Apresenta projetos de forma criativa; critica o próprio trabalho e o dos colegas sugerindo melhorias; combina disciplinas para criar algo novo.","Presents projects creatively; critiques own and peers' work suggesting improvements; combines subjects to create something new."],
+  ["Eu pesquiso por conta própria assuntos que me fascinam e escolho fontes confiáveis.","I research topics that fascinate me on my own and choose reliable sources.",
+   "Pesquisa de forma independente o que o fascina; escolhe fontes úteis e confiáveis; cria e apresenta um projeto sobre o que aprendeu.","Researches what fascinates them independently; chooses useful, reliable sources; creates and presents a project on what they learned."],
+  ["Eu pesquiso problemas da minha comunidade e debato soluções usando evidências.","I research problems in my community and debate solutions using evidence.",
+   "Pesquisa e apresenta problemas da comunidade e possíveis soluções; debate com evidências ouvindo os outros; participa de engajamento cívico.","Researches and presents community problems and possible solutions; debates with evidence while listening; takes part in civic engagement."],
+  ["Eu consigo organizar uma equipe e um plano em etapas para levar uma ação até o fim.","I can organise a team and a step-by-step plan to carry an action through.",
+   "Organiza uma equipe com função para todos; faz planos em etapas e os conclui; avalia o impacto das ações e o que mudar.","Organises a team with a role for everyone; makes step-by-step plans and completes them; evaluates the impact of actions and what to change."],
+  ["Eu procuro entender o significado de costumes de outras culturas e discuto com respeito pontos de vista diferentes.","I try to understand the meaning of other cultures' customs and discuss different viewpoints respectfully.",
+   "Investiga práticas culturais e seu significado; discute com respeito múltiplas perspectivas; troca experiências com estudantes de outros países.","Investigates cultural practices and their meaning; discusses multiple perspectives respectfully; exchanges with students from other countries."],
+  ["Eu uso planilhas, editores de texto e apresentações, e crio conteúdos como vídeos ou blogs.","I use spreadsheets, word processors and presentations, and create content like videos or blogs.",
+   "Usa editor de texto, planilhas e apresentações; cria blogs, vídeos e slides; participa de fóruns e plataformas.","Uses word processing, spreadsheets and presentations; creates blogs, videos and slides; takes part in forums and platforms."],
+  ["Eu cuido da minha privacidade nas redes, vejo se sites e aplicativos são seguros e sei agir diante de cyberbullying.","I protect my privacy online, check whether sites and apps are safe, and know how to act on cyberbullying.",
+   "Reage ao cyberbullying e denuncia; gerencia a privacidade nas redes; avalia a segurança de sites e aplicativos antes de usar.","Responds to and reports cyberbullying; manages privacy on social media; evaluates the safety of sites and apps before using them."],
+  ["Eu programo apps, sites ou objetos simples (como robôs ou peças 3D) que funcionam.","I code simple apps, websites or objects (like robots or 3D parts) that work.",
+   "Programa apps ou sites simples; cria objetos funcionais (impressão 3D, robôs); colabora em projetos que unem código e design.","Codes simple apps or websites; creates functional objects (3D printing, robots); collaborates on projects combining code and design."],
+  ["Eu defendo minhas ideias e as dos outros, e uso as críticas para melhorar.","I stand up for my ideas and for others, and use criticism to improve.",
+   "Defende a si e aos outros; usa críticas para melhorar; assume liderança em atividades extracurriculares.","Advocates for self and others; uses criticism to improve; takes on leadership in extracurricular activities."],
+  ["Eu defino minhas metas de estudo, peço feedback e escolho a estratégia certa para cada situação.","I set my learning goals, ask for feedback and choose the right strategy for each situation.",
+   "Usa evidências para refletir e pede feedback; escolhe estratégias conforme o contexto; lidera a própria aprendizagem com metas.","Uses evidence to reflect and asks for feedback; chooses strategies by context; leads own learning with goals."],
+  ["Eu equilibro escola, hobbies e descanso, e tenho estratégias para lidar com estresse ou ansiedade.","I balance school, hobbies and rest, and have strategies to deal with stress or anxiety.",
+   "Equilibra escola, hobbies e descanso; faz exercício regularmente; reconhece estresse ou ansiedade e tem estratégias para lidar.","Balances school, hobbies and rest; exercises regularly; recognises stress or anxiety and has coping strategies."],
+  ["Eu percebo o efeito das minhas palavras nos outros, peço desculpas e resolvo conflitos conversando.","I notice how my words affect others, apologise and resolve conflicts by talking.",
+   "Reconhece o impacto das próprias palavras e pede desculpas; resolve conflitos conversando; busca ajuda quando está estressado.","Recognises the impact of own words and apologises; resolves conflicts by talking; seeks help when stressed."],
+  ["Eu defendo minhas opiniões com razões e evidências e ajusto meu jeito de falar a cada pessoa.","I support my opinions with reasons and evidence and adapt how I speak to each person.",
+   "Defende opiniões com razões e evidências; ajusta o tom ao interlocutor; escreve ensaios e relatórios claros.","Supports opinions with reasons and evidence; adjusts tone to the audience; writes clear essays and reports."],
+  ["Em projetos de grupo, eu ajudo a dividir as tarefas, garanto que todos sejam ouvidos e aproveito o ponto forte de cada um.","In group projects, I help share out tasks, make sure everyone is heard and use each person's strengths.",
+   "Planeja e conclui projetos dividindo tarefas; garante objetivos claros e que todos sejam ouvidos; usa as forças de cada um.","Plans and completes projects sharing tasks; ensures clear goals and that everyone is heard; uses each member's strengths."]
+ ],
+ 4:[
+  ["Eu analiso questões complexas, identifico suposições e construo argumentos com evidências bem pesquisadas.","I analyse complex issues, identify assumptions and build arguments with well-researched evidence.",
+   "Analisa questões complexas e suposições; conduz discussões considerando todos os pontos de vista; argumenta com evidências bem pesquisadas.","Analyses complex issues and assumptions; leads discussions considering all viewpoints; argues with well-researched evidence."],
+  ["Eu crio ideias originais e testo e refino minhas abordagens até chegar a uma boa solução.","I create original ideas and test and refine my approaches until I reach a good solution.",
+   "Cria ideias originais com novas perspectivas; testa e refina abordagens; comunica em várias mídias para inspirar.","Creates original ideas with new perspectives; tests and refines approaches; communicates across media to inspire."],
+  ["Eu conduzo projetos independentes sobre temas complexos e mudo de opinião diante de novas informações.","I lead independent projects on complex topics and change my mind when I get new information.",
+   "Lidera projetos sobre temas complexos; muda de opinião diante de novas informações; faz estudo ou projeto final independente.","Leads projects on complex topics; changes views in light of new information; completes an independent study or final project."],
+  ["Eu analiso o impacto de políticas públicas e proponho ações concretas para a comunidade.","I analyse the impact of public policies and propose concrete actions for the community.",
+   "Analisa o impacto de políticas e propõe ações; organiza fóruns e eventos; apresenta propostas pesquisadas a lideranças.","Analyses the impact of policies and proposes actions; organises forums and events; presents researched proposals to leaders."],
+  ["Eu lidero iniciativas reais, coordenando pessoas, recursos e prazos.","I lead real initiatives, coordinating people, resources and deadlines.",
+   "Lidera iniciativas reais coordenando pessoas, recursos e tempo; defende mudanças com argumentos; reflete sobre implicações mais amplas.","Leads real initiatives coordinating people, resources and time; advocates for change with arguments; reflects on wider implications."],
+  ["Eu colaboro com pessoas de outras culturas e mantenho a empatia mesmo quando discordo.","I collaborate with people from other cultures and keep empathy even when I disagree.",
+   "Analisa como a cultura molda interações globais, com empatia mesmo discordando; colabora com outras culturas (presencial e online); avalia essas interações.","Analyses how culture shapes global interactions, with empathy even in disagreement; collaborates across cultures (in person and online); evaluates these interactions."],
+  ["Eu uso ferramentas digitais avançadas (edição multimídia, design, softwares especializados) nos meus trabalhos.","I use advanced digital tools (multimedia editing, design, specialised software) in my work.",
+   "Usa edição multimídia, design gráfico e softwares especializados; integra diferentes plataformas em pesquisas e projetos.","Uses multimedia editing, graphic design and specialised software; integrates platforms in research and projects."],
+  ["Eu pratico a ética online, cuido da minha pegada digital e respeito a autoria dos outros.","I practise ethics online, look after my digital footprint and respect others' authorship.",
+   "Defende e pratica a ética online; gerencia a pegada digital pensando no longo prazo; evita plágio e se comunica com respeito.","Advocates and practises online ethics; manages digital footprint long-term; avoids plagiarism and communicates respectfully."],
+  ["Eu desenvolvo ou lidero projetos digitais mais complexos, juntando diferentes tecnologias.","I develop or lead more complex digital projects, combining different technologies.",
+   "Desenvolve softwares ou plataformas complexos; integra tecnologias (vestíveis, experiências interativas); lidera projetos digitais.","Develops complex software or platforms; integrates technologies (wearables, interactive experiences); leads digital projects."],
+  ["Eu expresso minha identidade e meus valores com segurança e oriento alunos mais novos.","I express my identity and values with confidence and mentor younger students.",
+   "Expressa identidade e valores com confiança; encara tarefas complexas com atitude positiva; orienta alunos mais novos.","Expresses identity and values confidently; approaches complex tasks positively; mentors younger students."],
+  ["Eu analiso meus hábitos e meu progresso e sigo um plano de aprendizagem pessoal.","I analyse my habits and progress and follow a personal learning plan.",
+   "Analisa criticamente hábitos e progresso; avalia estratégias com mentores; mantém um plano de aprendizagem pessoal baseado em evidências.","Critically analyses habits and progress; evaluates strategies with mentors; keeps an evidence-based personal learning plan."],
+  ["Eu defino metas para a minha saúde física e emocional e procuro ajuda quando preciso.","I set goals for my physical and emotional health and seek help when I need it.",
+   "Define metas de saúde (atividade física, alimentação, estresse); procura ajuda quando precisa; promove o bem-estar na escola.","Sets health goals (exercise, nutrition, stress); seeks help when needed; promotes wellbeing at school."],
+  ["Eu conheço minhas forças e fraquezas e mantenho relações saudáveis com pessoas diferentes de mim.","I know my strengths and weaknesses and keep healthy relationships with people different from me.",
+   "Avalia forças e fraquezas e define metas; mantém relações saudáveis com pessoas diversas; lidera grupos encorajando os outros.","Assesses strengths and weaknesses and sets goals; keeps healthy relationships with diverse people; leads groups by encouraging others."],
+  ["Eu adapto ideias complexas a públicos diferentes e uso argumentos persuasivos em debates e apresentações.","I adapt complex ideas to different audiences and use persuasive arguments in debates and presentations.",
+   "Debate com técnicas persuasivas; faz apresentações profissionais; adapta ideias complexas a públicos diferentes.","Debates with persuasive techniques; gives professional presentations; adapts complex ideas to different audiences."],
+  ["Eu lidero projetos em equipe, resolvo conflitos e avalio como o grupo está trabalhando.","I lead team projects, resolve conflicts and evaluate how the group is working.",
+   "Lidera projetos e resolve conflitos; colabora com ferramentas digitais, inclusive à distância; avalia o desempenho da equipe.","Leads projects and resolves conflicts; collaborates with digital tools, including remotely; evaluates team performance."]
+ ]
+};
+const AV = {}; for(const st of [1,2,3,4]) AV[st] = AV_RAW[st].map((r,i)=>({sk:AV_SK[i], pt:r[0], en:r[1], prof:{pt:r[2], en:r[3]}}));
+const FACES = ["🙁","😐","😄"];
+function buildAvanco(st){
+  return AV[st].map(x=>({id:`a${st}-${x.sk}`, t:"avanco", sk:x.sk, i:ISKILL[x.sk], fixed:1, pt:x.pt, en:x.en, o:[{v:1},{v:2},{v:3}]}));
+}
+
 const ISKILL = {pc:"🔍",cr:"🎨",cu:"❓",ci:"🏫",ac:"📣",ic:"🌏",al:"🖱️",re:"🔒",in:"🤖",co:"🦁",aa:"🧭",be:"🍎",cl:"🧩",cm:"💬",se:"💗"};
-const ITEMS = {auto:{1:buildItems(1),2:buildItems(2)}, saber:{1:buildSaber(1),2:buildSaber(2)}};
+const ITEMS = {auto:{1:buildItems(1),2:buildItems(2)}, saber:{1:buildSaber(1),2:buildSaber(2)}, avanco:{1:buildAvanco(1),2:buildAvanco(2),3:buildAvanco(3),4:buildAvanco(4)}};
 
 /* =====================================================================
    CONTEÚDO EDITÁVEL — a coordenação edita no painel (aba "Perguntas").
@@ -580,7 +746,7 @@ const ITEMS = {auto:{1:buildItems(1),2:buildItems(2)}, saber:{1:buildSaber(1),2:
 const clone = o => JSON.parse(JSON.stringify(o));
 function snapshotContent(){
   return clone({
-    stm:STM, sits:SITS, open:OPEN_Q,
+    av:AV, stm:STM, sits:SITS, open:OPEN_Q,
     wheel:{1:WHEEL_Q[1].map(q=>({pt:q.pt,en:q.en,o:q.o.map(o=>({pt:o.pt,en:o.en,ok:o.ok?1:0}))})),
            2:WHEEL_Q[2].map(q=>({pt:q.pt,en:q.en,o:q.o.map(o=>({pt:o.pt,en:o.en,ok:o.ok?1:0}))}))},
     id1:ID1.map(x=>({id:x.id,ans:x.ans,o:x.o,pt:x.pt,en:x.en,ref:x.ref||""})),
@@ -591,7 +757,7 @@ function snapshotContent(){
   });
 }
 /* mensagens faladas/mostradas ao aluno que a coordenação pode editar */
-const MSG_KEYS = ["intro1","intro2","introSaber1","introSaber2","qForca1","qForca2","fbOkStart","fbPartOf","fbChose","fbThatPart","fbNotThis","fbNo","done","doneSub","doneSaber"];
+const MSG_KEYS = ["introAv","avNo","avSome","avYes","intro1","intro2","introSaber1","introSaber2","qForca1","qForca2","fbOkStart","fbPartOf","fbChose","fbThatPart","fbNotThis","fbNo","done","doneSub","doneSaber"];
 let DEFAULT_CONTENT;  // definido logo depois dos textos (T)
 const fillArr = (arr, src) => { arr.splice(0, arr.length, ...src); };
 const fillObj = (obj, src) => { Object.keys(obj).forEach(k=>delete obj[k]); Object.assign(obj, src); };
@@ -630,14 +796,16 @@ function applyContent(doc){
   // mensagens ao aluno
   for(const k of MSG_KEYS){ const m = txt(c.msgs?.[k], D.msgs[k]); T.pt[k] = m.pt.trim()||D.msgs[k].pt; T.en[k] = m.en.trim()||D.msgs[k].en; }
   for(const k of Object.keys(SKILLS)) Object.assign(KIDS[k], txt(c.kids?.[k], D.kids[k]));
+  for(const st of [1,2,3,4]) D.av[st].forEach((d,i)=>{ const x = c.av?.[st]?.[i]; Object.assign(AV[st][i], txt(x,d)); AV[st][i].prof = txt(x?.prof, d.prof); });
+  for(const st of [1,2,3,4]) ITEMS.avanco[st]=buildAvanco(st);
   ITEMS.auto[1]=buildItems(1); ITEMS.auto[2]=buildItems(2); ITEMS.saber[1]=buildSaber(1); ITEMS.saber[2]=buildSaber(2);
 }
 
 const T = {
- pt:{title:"Autoavaliação Life Competencies",grade:"Série",section:"Turma (opcional)",name:"Primeiro nome e iniciais",namePh:"Ex.: Ana B. S.",savedAs:"Fica salvo como:",nameHelp:"Por segurança, só o primeiro nome fica completo; os sobrenomes viram iniciais automaticamente.",start:"Começar",
+ pt:{title:"Avaliação Life Competencies",tests:{avanco:["Avaliação do avanço dos alunos","O aluno diz como se vê em cada habilidade; o professor registra o que observa"],saber:["O que eu sei","Se o aluno conhece a roda e reconhece cada competência"]},s1av:"Estágio 1 (4 a 7 anos) · 15 frases, uma por habilidade. A voz lê cada frase e a criança toca numa carinha: Ainda não, Às vezes ou Sim. Depois, o professor registra no painel o nível que observa.",s2av:"Estágio 2 (7 a 11 anos) · 15 frases, uma por habilidade, respondidas com as carinhas Ainda não, Às vezes ou Sim. Depois, o professor registra no painel o nível que observa.",s3av:"Estágio 3 (11 a 14 anos) · 15 frases, uma por habilidade, respondidas com Ainda não, Às vezes ou Sim. Depois, o professor registra no painel o nível que observa.",s4av:"Estágio 4 (14 a 18 anos) · 15 frases, uma por habilidade, respondidas com Ainda não, Às vezes ou Sim. Depois, o professor registra no painel o nível que observa.",introAv:"Vou ler algumas frases sobre coisas que você faz. Para cada uma, toque na carinha: Ainda não, Às vezes ou Sim. Não existe resposta certa ou errada. Pense no que você consegue fazer sozinho, de verdade.",avNo:"Ainda não",avSome:"Às vezes",avYes:"Sim",edAvIntro:"Abertura e carinhas (iguais em todos os estágios)",edAvShared:"A abertura e as carinhas são as mesmas em todos os estágios: mudar aqui muda em todos.",edAvProf:"O que o professor observa (Dominando)",edAvNote:"Cada frase é lida para o aluno, que responde com uma carinha. Embaixo de cada frase fica o que significa “Dominando” naquela habilidade e naquele estágio, segundo o Quadro Referencial: é o que o professor vê quando avalia o aluno no painel.",avKeyTitle:"Como ler",avKey:"O aluno responde a cada frase com uma carinha e o professor marca o nível que observa. As duas visões usam a escala do Quadro Referencial:",avMap:["🙁 Ainda não = Iniciando: só faz com ajuda","😐 Às vezes = Desenvolvendo: faz com algum incentivo","😄 Sim = Dominando: faz sozinho e com frequência"],avSkillTitle:"A turma em cada habilidade",avSkillNote:"Como os alunos se veem e o que o professor observa. A última coluna mostra quantos alunos se veem acima do nível que o professor observou.",avSkill:"Habilidade",avStudents:"Alunos (como se veem)",avTeacher:"Professor (o que observa)",avAbove:"Aluno acima do professor",avAboveCol:"Acima",avLegend:"Carinha = resposta do aluno · Ini / Des / Dom = avaliação do professor · contorno laranja = o aluno se vê acima do que o professor observa",lvlShort:["Ini","Des","Dom"],avNotYet:"falta avaliar",avStage:"Estágio",grade:"Série",section:"Turma (opcional)",name:"Primeiro nome e iniciais",namePh:"Ex.: Ana B. S.",savedAs:"Fica salvo como:",nameHelp:"Por segurança, só o primeiro nome fica completo; os sobrenomes viram iniciais automaticamente.",start:"Começar",
    wheelChip:"o que você já sabe",wheelAlt:"Roda das Life Competencies da iSP",
    wheelTitle:"O que os alunos já sabem sobre a roda",seen:["Nunca viu","Talvez","Já viu"],seenCol:"Viu a roda",knowsCol:"Sabe o que é",knowsKpi:"entendem o que a roda quer dizer",
-   testLbl:"Atividade",tests:{auto:["Autoavaliação","Como o aluno se vê nas competências"],saber:["O que eu sei","Se o aluno conhece a roda e reconhece cada competência"]},
+   testLbl:"Atividade",
    s1saber:"Estágio 1 (4 a 7 anos) · 12 perguntas (14 no K4, com menos situações de Digital), baseadas nos exemplos do Quadro Referencial: a roda e as 5 competências. A voz lê tudo; a criança só toca no desenho. Em cada situação ela toca em Conferir e, se errar, tenta de novo; o painel registra só a primeira tentativa.",
    s2saber:"Estágio 2 (7 a 11 anos) · 17 perguntas: a roda e as 15 habilidades. Em cada situação o aluno toca em Conferir e, se errar, tenta de novo; o painel registra só a primeira tentativa.",
    introSaber1:"Primeiro, vou te mostrar uma roda. Depois, vou contar o que algumas crianças fizeram, e você escolhe qual parte da roda elas estão mostrando.",
@@ -656,7 +824,7 @@ const T = {
    savedLocal:"Sem internet agora: as respostas ficaram guardadas neste aparelho e serão enviadas automaticamente quando a conexão voltar.",
    panel:"Painel da coordenação",edTab:"Perguntas e Respostas",
    edIntro:"Revise e edite os textos e as respostas das duas atividades. Nada muda para os alunos até você tocar em Salvar; depois de salvar, a mudança vale para todos os aparelhos na próxima atividade que começar.",
-   edSecs:{a1s1:"Autoavaliação · K4–Y2",a1s2:"Autoavaliação · Y3–Y5",a2s1:"O que eu sei · K4–Y2",a2s2:"O que eu sei · Y3–Y5"},
+   edSecs:{av1:"Avanço · K4–Y2",av2:"Avanço · Y3–Y6",av3:"Avanço · Y7–Y9",av4:"Avanço · Y10–Y13",a2s1:"O que eu sei · K4–Y2",a2s2:"O que eu sei · Y3–Y6"},
    edAnswer:"Resposta",edCompSkill:"Competência · habilidade",edExpectedShort:"Esperada",edMeaning:"Significa",edRole:"Papel",
    edRowRight:"Certa",edRowAlt1:"Alternativa 1 (mesma competência)",edRowAlt2:"Alternativa 2 (outra competência)",edRowAlt1k:"Alternativa 1 (todas as séries)",edRowAlt2k:"Alternativa 2 (só Y1–Y2)",
    edSeesKid:"K4–K5 vê:",edSeesY12:"Y1–Y2 vê:",edForcaQ:"Pergunta das frases (igual em todas)",
@@ -690,15 +858,15 @@ const T = {
    empty:"Ainda não há respostas para este filtro.",
    export:"Baixar planilha (CSV)",del:"apagar",yes:"Sim, apagar",no:"Cancelar",open:"Respostas abertas",
    noDb:"O painel compartilhado não está disponível nesta visualização. Mostrando apenas respostas salvas neste aparelho.",
-   evaluate:"avaliar",reevaluate:"revisar avaliação",evalTitle:"Avaliação do professor",evalHint:"Marque o nível que você observa em sala em cada habilidade. É aqui que fica o nível (Iniciando / Desenvolvendo / Dominando).",
+   evaluate:"avaliar",reevaluate:"revisar avaliação",evalTitle:"Avaliação do professor",evalHint:"Para cada habilidade, veja o que significa “Dominando” neste estágio e marque o que você observa em sala: Iniciando = só com ajuda; Desenvolvendo = às vezes, com incentivo; Dominando = sozinho e com consistência. As respostas do aluno ficam escondidas aqui para não influenciar.",
    saveEval:"Salvar avaliação",cancel:"Cancelar",savedEval:"Avaliação salva.",
-   flagFast:"respondeu rápido demais",flagSame:"escolheu quase sempre a mesma letra",
+   flagFast:"respondeu rápido demais",flagSame:"escolheu quase sempre a mesma resposta",
    agree:"Alunos cuja força principal coincide com a do professor",
    flagsTitle:"Respostas para conversar",flagsNote:"Sinais, não conclusões: vale uma conversa com o aluno."},
- en:{title:"Life Competencies Self-Assessment",grade:"Year group",section:"Class (optional)",name:"First name and initials",namePh:"E.g. Ana B. S.",savedAs:"Saved as:",nameHelp:"For safety, only the first name is kept in full; surnames automatically become initials.",start:"Start",
+ en:{title:"Life Competencies Assessment",tests:{avanco:["Student progress assessment","The student says how they see themselves in each skill; the teacher records what they observe"],saber:["What I know","Whether the student knows the wheel and recognises each competency"]},s1av:"Stage 1 (ages 4–7) · 15 sentences, one per skill. The voice reads each sentence and the child taps a face: Not yet, Sometimes or Yes. Then the teacher records the level they observe in the panel.",s2av:"Stage 2 (ages 7–11) · 15 sentences, one per skill, answered with the faces Not yet, Sometimes or Yes. Then the teacher records the observed level in the panel.",s3av:"Stage 3 (ages 11–14) · 15 sentences, one per skill, answered with Not yet, Sometimes or Yes. Then the teacher records the observed level in the panel.",s4av:"Stage 4 (ages 14–18) · 15 sentences, one per skill, answered with Not yet, Sometimes or Yes. Then the teacher records the observed level in the panel.",introAv:"I will read some sentences about things you do. For each one, tap a face: Not yet, Sometimes or Yes. There is no right or wrong answer. Think about what you can really do on your own.",avNo:"Not yet",avSome:"Sometimes",avYes:"Yes",edAvIntro:"Opening and faces (same in every stage)",edAvShared:"The opening and the faces are the same in every stage: changing them here changes them everywhere.",edAvProf:"What the teacher observes (Mastering)",edAvNote:"Each sentence is read to the student, who answers with a face. Under each sentence is what “Mastering” means for that skill and stage, according to the Framework: this is what the teacher sees when assessing the student in the panel.",avKeyTitle:"How to read",avKey:"The student answers each sentence with a face and the teacher marks the level they observe. Both views use the Framework scale:",avMap:["🙁 Not yet = Beginning: only with help","😐 Sometimes = Developing: with some encouragement","😄 Yes = Mastering: independently and often"],avSkillTitle:"The class in each skill",avSkillNote:"How students see themselves and what the teacher observes. The last column shows how many students rate themselves above the level the teacher observed.",avSkill:"Skill",avStudents:"Students (self-view)",avTeacher:"Teacher (observed)",avAbove:"Student above teacher",avAboveCol:"Above",avLegend:"Face = student answer · Beg / Dev / Mas = teacher assessment · orange outline = student rates themselves above the teacher",lvlShort:["Beg","Dev","Mas"],avNotYet:"not assessed yet",avStage:"Stage",grade:"Year group",section:"Class (optional)",name:"First name and initials",namePh:"E.g. Ana B. S.",savedAs:"Saved as:",nameHelp:"For safety, only the first name is kept in full; surnames automatically become initials.",start:"Start",
    wheelChip:"what you already know",wheelAlt:"iSP Life Competencies wheel",
    wheelTitle:"What students already know about the wheel",seen:["Never seen","Maybe","Has seen"],seenCol:"Seen the wheel",knowsCol:"Knows what it is",knowsKpi:"understand what the wheel means",
-   testLbl:"Activity",tests:{auto:["Self-assessment","How the student sees themselves"],saber:["What I know","Whether the student knows the wheel and recognises each competency"]},
+   testLbl:"Activity",
    s1saber:"Stage 1 (ages 4–7) · 12 questions (14 in K4, with fewer Digital situations): the wheel and the 5 competencies. The voice reads everything; the child just taps a picture.",
    s2saber:"Stage 2 (ages 7–11) · 17 questions: the wheel and the 15 skills.",
    introSaber1:"First, I'll show you a wheel. Then I'll tell you what some children did, and you choose which part of the wheel they are showing.",
@@ -717,7 +885,7 @@ const T = {
    savedLocal:"No internet right now: the answers are stored on this device and will be sent automatically when the connection is back.",
    panel:"Coordinator panel",edTab:"Questions and Answers",
    edIntro:"Review and edit the texts and answers of both activities. Nothing changes for students until you tap Save; after saving, the change applies on every device from the next activity started.",
-   edSecs:{a1s1:"Self-assessment · K4–Y2",a1s2:"Self-assessment · Y3–Y5",a2s1:"What I know · K4–Y2",a2s2:"What I know · Y3–Y5"},
+   edSecs:{av1:"Progress · K4–Y2",av2:"Progress · Y3–Y6",av3:"Progress · Y7–Y9",av4:"Progress · Y10–Y13",a2s1:"What I know · K4–Y2",a2s2:"What I know · Y3–Y6"},
    edAnswer:"Answer",edCompSkill:"Competency · skill",edExpectedShort:"Expected",edMeaning:"Means",edRole:"Role",
    edRowRight:"Right",edRowAlt1:"Alternative 1 (same competency)",edRowAlt2:"Alternative 2 (other competency)",edRowAlt1k:"Alternative 1 (all year groups)",edRowAlt2k:"Alternative 2 (Y1–Y2 only)",
    edSeesKid:"K4–K5 see:",edSeesY12:"Y1–Y2 see:",edForcaQ:"Sentence question (same in all)",
@@ -751,18 +919,18 @@ const T = {
    empty:"No responses for this filter yet.",
    export:"Download spreadsheet (CSV)",del:"delete",yes:"Yes, delete",no:"Cancel",open:"Open answers",
    noDb:"The shared panel isn't available in this view. Showing only answers saved on this device.",
-   evaluate:"assess",reevaluate:"edit assessment",evalTitle:"Teacher assessment",evalHint:"Mark the level you observe in class for each skill. This is where the level (Beginning / Developing / Mastering) is recorded.",
+   evaluate:"assess",reevaluate:"edit assessment",evalTitle:"Teacher assessment",evalHint:"For each skill, see what “Mastering” means at this stage and mark what you observe in class: Beginning = only with help; Developing = sometimes, with encouragement; Mastering = independently and consistently. The student's answers are hidden here so they don't influence you.",
    saveEval:"Save assessment",cancel:"Cancel",savedEval:"Assessment saved.",
-   flagFast:"answered too fast",flagSame:"almost always chose the same letter",
+   flagFast:"answered too fast",flagSame:"almost always chose the same answer",
    agree:"Students whose top strength matches the teacher's",
    flagsTitle:"Answers worth a conversation",flagsNote:"Signals, not conclusions: worth a chat with the student."}
 };
 DEFAULT_CONTENT = snapshotContent();
 
 /* ---------- estado ---------- */
-const S = {first:{},tried:{},solved:{},fb:null,test:"auto",panelTest:"auto",lang:"pt",screen:"start",grade:"",section:"",name:"",idx:0,answers:{},times:{},perm:{},shownAt:0,startedAt:0,openText:"",saveMsg:"",reading:-1,
+const S = {first:{},tried:{},solved:{},fb:null,test:"avanco",panelTest:"avanco",lang:"pt",screen:"start",grade:"",section:"",name:"",idx:0,answers:{},times:{},perm:{},shownAt:0,startedAt:0,openText:"",saveMsg:"",reading:-1,
   panelGrade:"",panelSection:"",rows:[],gateErr:false,confirmDel:null,dbReady:false,evalId:null,evalDraft:{},evalMsg:""};
-try{ const p = JSON.parse(localStorage.getItem("lc-prefs")||"{}"); Object.assign(S,{lang:p.lang||"pt",grade:p.grade||"",section:p.section||"",test:p.test==="saber"?"saber":"auto"}); }catch(e){}
+try{ const p = JSON.parse(localStorage.getItem("lc-prefs")||"{}"); Object.assign(S,{lang:p.lang||"pt",grade:p.grade||"",section:p.section||"",test:p.test==="saber"?"saber":"avanco"}); if(S.grade && !gradesFor(S.test).includes(S.grade)) S.grade=""; }catch(e){}
 const savePrefs = () => { try{ localStorage.setItem("lc-prefs",JSON.stringify({lang:S.lang,grade:S.grade,section:S.section,test:S.test})); }catch(e){} };
 const t = k => T[S.lang][k];
 const L = o => o[S.lang];
@@ -777,18 +945,18 @@ const currentItems = () => {
   const order = S.grade==="K4" ? ORDER_K4 : ORDER_S1;
   return wheel.concat(order.map(id=>all.find(it=>it.id===id)));
 };
-const hasOpen = () => S.test==="auto" && stageOf(S.grade)===2;
+const hasOpen = () => false;  // a antiga pergunta aberta era da autoavaliação (removida)
 const identQ = () => t(stageOf(S.grade)===1?"qIdent1":"qIdent2");
-const introKey = () => (S.test==="saber"?"introSaber":"intro")+stageOf(S.grade);
+const introKey = () => S.test==="saber" ? "introSaber"+stageOf(S.grade) : "introAv";
 const totalSteps = () => currentItems().length + (hasOpen()?1:0);
 const isKid = () => ["K4","K5"].includes(S.grade);
 const compName = c => isKid() ? L(KIDC[c]) : L(COMPS[c]);
 const skName = k => isKid() ? L(KIDS[k]) : L(SKILLS[k]);
-const optText = (it,k) => it.t!=="ident" ? L(it.o[k])
+const optText = (it,k) => it.t==="avanco" ? t(["avNo","avSome","avYes"][k]) : it.t!=="ident" ? L(it.o[k])
   : stageOf(S.grade)===1 ? compName(it.o[k].key)
   : compName(SKILLS[it.o[k].key].comp)+" · "+skName(it.o[k].key);
-const optIcon = (it,k) => it.t==="ident" ? (stageOf(S.grade)===1 ? ICOMP[it.o[k].key] : ISKILL[it.o[k].key]) : (it.o[k].ic||"");
-const pics = () => S.test==="saber";
+const optIcon = (it,k) => it.t==="avanco" ? FACES[k] : it.t==="ident" ? (stageOf(S.grade)===1 ? ICOMP[it.o[k].key] : ISKILL[it.o[k].key]) : (it.o[k].ic||"");
+const pics = () => S.test==="saber" || S.test==="avanco";
 const spokenPrefix = pos => pics() ? "" : SPOKEN[S.lang][pos]+" ";
 const fbOkText = it => {
   const st = stageOf(S.grade);
@@ -915,7 +1083,8 @@ async function saveResponse(){
   for(const it of items){
     const a = (it.t==="ident" && S.first[it.id]!=null) ? S.first[it.id] : S.answers[it.id]; if(a==null) continue;
     const ms = Math.round(S.times[it.id]||0), pos = S.perm[it.id].indexOf(a);
-    rec.itens[it.id] = it.t==="forca" ? {tipo:"forca",comp:it.o[a].comp,sk:it.o[a].sk,pos,ms}
+    rec.itens[it.id] = it.t==="avanco" ? {tipo:"avanco",sk:it.sk,nivel:it.o[a].v,pos,ms}
+      : it.t==="forca" ? {tipo:"forca",comp:it.o[a].comp,sk:it.o[a].sk,pos,ms}
       : it.t==="ident" ? (()=>{ const key=it.o[a].key, st=stageOf(S.grade);
           const nivel = key===it.ans ? 2 : (st===2 && SKILLS[key].comp===SKILLS[it.ans].comp ? 1 : 0);
           return {tipo:"ident",ans:it.ans,escolha:key,nivel,pos,ms}; })()
@@ -981,10 +1150,10 @@ function renderStart(){
   <section class="card" style="display:flex;flex-direction:column;gap:18px">
     <p class="note" style="margin:0">${esc(t("teacherNote"))}</p>
     <div class="field"><span class="lbl">${esc(t("testLbl"))}</span>
-      <div class="tests">${["auto","saber"].map(k=>`<button data-act="test" data-v="${k}" aria-pressed="${S.test===k}"><b>${esc(t("tests")[k][0])}</b><span>${esc(t("tests")[k][1])}</span></button>`).join("")}</div></div>
+      <div class="tests">${["avanco","saber"].map(k=>`<button data-act="test" data-v="${k}" aria-pressed="${S.test===k}"><b>${esc(t("tests")[k][0])}</b><span>${esc(t("tests")[k][1])}</span></button>`).join("")}</div></div>
     <div class="field"><span class="lbl">${esc(t("grade"))}</span>
-      <div class="grades">${GRADES.map(g=>`<button data-act="grade" data-v="${g}" aria-pressed="${S.grade===g}">${g}</button>`).join("")}</div></div>
-    ${st?`<div class="stagehint">${esc(t((st===1?"s1":"s2")+(S.test==="saber"?"saber":"")))}</div>`:""}
+      <div class="grades">${gradesFor(S.test).map(g=>`<button data-act="grade" data-v="${g}" aria-pressed="${S.grade===g}">${g}</button>`).join("")}</div></div>
+    ${st?`<div class="stagehint">${esc(t("s"+st+(S.test==="saber"?"saber":"av")))}</div>`:""}
     <div class="row2">
       <div class="field"><label class="lbl" for="f-name">${esc(t("name"))}</label><input id="f-name" type="text" autocomplete="off" placeholder="${esc(t("namePh"))}" value="${esc(S.name)}"><span class="note" id="f-name-prev">${S.name.trim()?esc(t("savedAs"))+" <b>"+esc(safeName(S.name))+"</b>":esc(t("nameHelp"))}</span></div>
       <div class="field"><label class="lbl" for="f-sec">${esc(t("section"))}</label><input id="f-sec" type="text" autocomplete="off" placeholder="A, B, Blue…" value="${esc(S.section)}"></div>
@@ -998,7 +1167,7 @@ function renderIntro(){
   return header() + `<section class="card q">
     <div class="qrow"><h1 class="qtext" style="font-size:clamp(2rem,6vw,3rem)">${esc(t("introTitle").replace("{n}",firstName()))}</h1>${audioBtns()}</div>
     <p style="margin:0;font-size:1.25rem;max-width:36ch">${esc(t(introKey()))}</p>
-    ${pics()?"":`<div class="stars" aria-hidden="true"><span>A</span><span>B</span><span>C</span></div>`}
+    ${S.test==="avanco"?`<div class="faces" aria-hidden="true">${FACES.map((f,k)=>`<span><b>${f}</b>${esc(t(["avNo","avSome","avYes"][k]))}</span>`).join("")}</div>`:pics()?"":`<div class="stars" aria-hidden="true"><span>A</span><span>B</span><span>C</span></div>`}
         <button class="btn" data-act="go">${esc(t("go"))} →</button>
   </section>`;
 }
@@ -1020,12 +1189,12 @@ function renderQuiz(){
   <section class="card q">
     <div class="chips">${it.t==="ident" ? ""
       : it.t==="roda" ? ""
-      : it.t==="cena"
+      : (it.t==="cena" || it.t==="avanco")
       ? (()=>{const sk=SKILLS[it.sk], c=COMPS[sk.comp]; return `<span class="chip" style="--c:var(${c.c})">${esc(compName(sk.comp))} · ${esc(skName(it.sk))}</span>`;})()
       : ""}</div>
     ${it.t==="roda" ? `<img class="wheelimg" src="${WHEEL_IMG}" alt="${esc(t("wheelAlt"))}">` : it.t==="ident" ? "" : `<div class="scene" aria-hidden="true">${it.i}</div>`}
     <div class="qrow"><h2 class="qtext">${esc(qText(it))}</h2>${audioBtns()}</div>
-        <div class="opts${order.length===2?" two":""}" role="group">${order.map((k,pos)=>`<button class="opt${S.reading===pos?" reading":""}${(S.tried[it.id]||[]).includes(k)?" tried":""}" data-act="answer" data-v="${k}" data-pos="${pos}" aria-pressed="${sel===k}" ${(S.tried[it.id]||[]).includes(k)?"disabled":""} aria-label="${esc((pics()?"":POSNAME[S.lang][pos]+": ")+optText(it,k))}"><span class="dot${pics()?" pic":""}" aria-hidden="true">${pics()?optIcon(it,k):POSNAME[S.lang][pos]}</span><span class="t">${esc(optText(it,k))}</span>${it.t==="forca"?(()=>{const sk=SKILLS[it.o[k].sk], c=COMPS[it.o[k].comp]; return `<span class="sktag" style="--c:var(${c.c})">${esc(compName(it.o[k].comp))} · ${esc(skName(it.o[k].sk))}</span>`;})():""}</button>`).join("")}</div>
+        <div class="opts${order.length===2?" two":""}" role="group">${order.map((k,pos)=>`<button class="opt${S.reading===pos?" reading":""}${(S.tried[it.id]||[]).includes(k)?" tried":""}" data-act="answer" data-v="${k}" data-pos="${pos}" aria-pressed="${sel===k}" ${(S.tried[it.id]||[]).includes(k)?"disabled":""} aria-label="${esc((pics()?"":POSNAME[S.lang][pos]+": ")+optText(it,k))}"><span class="dot${pics()?" pic":""}${it.t==="avanco"?" face":""}" aria-hidden="true">${pics()?optIcon(it,k):POSNAME[S.lang][pos]}</span><span class="t">${esc(optText(it,k))}</span>${it.t==="forca"?(()=>{const sk=SKILLS[it.o[k].sk], c=COMPS[it.o[k].comp]; return `<span class="sktag" style="--c:var(${c.c})">${esc(compName(it.o[k].comp))} · ${esc(skName(it.o[k].sk))}</span>`;})():""}</button>`).join("")}</div>
     ${it.t==="ident" && S.solved[it.id] ? `<div class="fb ok" role="status"><span aria-hidden="true">🎉</span>${esc(fbOkText(it))}</div>`
       : it.t==="ident" && S.fb && S.fb.id===it.id && !S.fb.ok ? `<div class="fb no" role="status"><span aria-hidden="true">🔁</span>${esc(fbNoText(it,S.fb.k))}</div>` : ""}
   </section>
@@ -1060,11 +1229,12 @@ function filtered(){
 }
 
 function renderEval(r){
+  const st = r.estagio || stageOf(r.serie);
   return `<section class="card" id="evalcard" style="display:flex;flex-direction:column;gap:12px">
-    <h2 style="font-size:1.5rem">${esc(t("evalTitle"))} · ${esc(r.nome)} <span class="note">(${esc(r.serie)}${r.turma?" "+esc(r.turma):""})</span></h2>
+    <h2 style="font-size:1.5rem">${esc(t("evalTitle"))} · ${esc(r.nome)} <span class="note">(${esc(r.serie)}${r.turma?" "+esc(r.turma):""} · ${esc(t("avStage"))} ${st})</span></h2>
     <p class="note" style="margin:0">${esc(t("evalHint"))}</p>
-    <div class="evalgrid">${Object.entries(SKILLS).map(([k,sk])=>{const v=S.evalDraft[k];
-      return `<div class="evalrow" style="--c:var(${COMPS[sk.comp].c})"><div class="sk"><b>${esc(L(sk))}</b><span class="note">${esc(L(COMPS[sk.comp]))}</span></div>
+    <div class="evalgrid">${AV_SK.map(k=>{const sk=SKILLS[k], v=S.evalDraft[k], d=(AV[st]||[]).find(x=>x.sk===k);
+      return `<div class="evalrow" style="--c:var(${COMPS[sk.comp].c})"><div class="sk"><b>${esc(L(sk))}</b><span class="note">${esc(L(COMPS[sk.comp]))}</span>${d?`<span class="desc">${esc(t("lvl")[2])}: ${esc(L(d.prof))}</span>`:""}</div>
       <div class="lvlbtns">${[1,2,3].map(l=>`<button class="v${l}" data-act="evalLvl" data-sk="${k}" data-v="${l}" aria-pressed="${v===l}">${esc(t("lvl")[l-1])}</button>`).join("")}</div></div>`;}).join("")}</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn small" data-act="saveEval" data-v="${esc(r.id)}">${esc(t("saveEval"))}</button><button class="btn ghost" data-act="cancelEval">${esc(t("cancel"))}</button></div>
   </section>`;
@@ -1074,7 +1244,7 @@ function renderPanel(){
   const rows = filtered(), all = allRows();
   const sections = [...new Set(all.filter(r=>(r.teste||"auto")===S.panelTest).filter(r=>!S.panelGrade||r.serie===S.panelGrade).map(r=>r.turma||"").filter(Boolean))].sort();
   let html = header(`<button class="btn ghost" data-act="home">${esc(t("exit"))}</button>`) + `<h1 style="font-size:2rem">${esc(t("panel"))}</h1>
-  <div class="ptabs" role="tablist">${["auto","saber"].map(k=>`<button role="tab" data-act="ptab" data-v="${k}" aria-selected="${S.panelTest===k}">${esc(t("tests")[k][0])}</button>`).join("")}<button role="tab" data-act="ptab" data-v="edit" aria-selected="${S.panelTest==="edit"}">✎ ${esc(t("edTab"))}</button></div>`;
+  <div class="ptabs" role="tablist">${["avanco","saber"].map(k=>`<button role="tab" data-act="ptab" data-v="${k}" aria-selected="${S.panelTest===k}">${esc(t("tests")[k][0])}</button>`).join("")}<button role="tab" data-act="ptab" data-v="edit" aria-selected="${S.panelTest==="edit"}">✎ ${esc(t("edTab"))}</button></div>`;
   if(S.panelTest==="edit") return html + renderEditor();
   if(S.loadErr) html += `<div class="status">${esc(t("netErr"))}</div>`;
   if(S.evalMsg) html += `<div class="note">${esc(S.evalMsg)}</div>`;
@@ -1090,48 +1260,52 @@ function renderPanel(){
   if(evalRow) html += renderEval(evalRow);
 
   if(S.panelTest==="saber") return html + renderSaber(rows);
+  return html + renderAvanco(rows);
+}
 
-  // perfil de forças da turma
-  const tot={cog:0,glo:0,dig:0,aut:0,int:0}; rows.forEach(r=>{ const p=picks(r); CK.forEach(c=>tot[c]+=p[c]); });
-  let agreeN=0, agreeD=0;
-  rows.forEach(r=>{ const tc=teacherByComp(r); if(!tc) return; agreeD++; const sTop=topOf(picks(r)), tTop=topOf(tc); if(sTop.some(c=>tTop.includes(c))) agreeN++; });
-  html += `<h2 style="font-size:1.4rem">${esc(t("profileTitle"))}</h2><p class="note" style="margin:0">${esc(t("profileNote"))}</p>
-  <div class="kpis">` + CK.map(c=>{ const share = tot[c]/(rows.length*6)||0;
-    return `<div class="comp" style="--c:var(${COMPS[c].c})"><h3>${esc(L(COMPS[c]))}</h3><div class="meter"><span style="width:${Math.round(share*100)}%"></span></div><span class="note">${(tot[c]/rows.length).toFixed(1).replace(".",",")} / 6</span></div>`;
-  }).join("") + (agreeD?`<div class="comp" style="--c:var(--flag)"><h3>${Math.round(agreeN/agreeD*100)}%</h3><span class="note">${esc(t("agree"))} (${agreeN}/${agreeD})</span></div>`:"") + `</div>`;
-
-  // situações
-  const sitStats = {};
-  rows.forEach(r=>Object.entries(r.itens||{}).forEach(([id,a])=>{ if(a.tipo!=="cena") return; sitStats[id]=sitStats[id]||{ok:0,n:0}; sitStats[id].n++; if(a.correto) sitStats[id].ok++; }));
-  const sitList = [...SITS[1],...SITS[2]].filter(s=>sitStats[s.id]);
-  if(sitList.length) html += `<h2 style="font-size:1.4rem">${esc(t("sitTitle"))}</h2><p class="note" style="margin:0">${esc(t("sitNote"))}</p>
-    <div class="kpis">${sitList.map(s=>{const st=sitStats[s.id], sk=SKILLS[s.sk]; return `<div class="comp" style="--c:var(${COMPS[sk.comp].c})"><h3>${Math.round(st.ok/st.n*100)}%</h3><span class="note">${esc(L(sk))}: ${esc(L(s).slice(0,70))}${L(s).length>70?"…":""}</span></div>`;}).join("")}</div>`;
-
-  // respostas para conversar
+/* ---------- painel: avaliação do avanço ---------- */
+function avOf(r){ const o={}; Object.values(r.itens||{}).forEach(a=>{ if(a.tipo==="avanco") o[a.sk]=a.nivel; }); return o; }
+const profOf = r => r.professor || {};
+function lvBar(cnt){
+  const n = cnt[1]+cnt[2]+cnt[3];
+  if(!n) return `<span class="note">–</span>`;
+  return `<div class="lvbar">${[1,2,3].map(l=>cnt[l]?`<span class="l${l}" style="width:${cnt[l]/n*100}%" title="${esc(t("lvl")[l-1])}: ${cnt[l]}">${Math.round(cnt[l]/n*100)}%</span>`:"").join("")}</div><span class="note">n = ${n}</span>`;
+}
+function renderAvanco(rows){
+  let html = `<section class="card avkey"><b>${esc(t("avKeyTitle"))}</b><span class="note">${esc(t("avKey"))}</span>
+    <ul>${t("avMap").map((m,i)=>`<li class="l${i+1}">${esc(m)}</li>`).join("")}</ul></section>`;
+  // a turma em cada habilidade
+  html += `<h2 style="font-size:1.4rem">${esc(t("avSkillTitle"))}</h2><p class="note" style="margin:0">${esc(t("avSkillNote"))}</p>
+  <div class="tablewrap"><table><thead><tr><th class="name">${esc(t("avSkill"))}</th><th>${esc(t("avStudents"))}</th><th>${esc(t("avTeacher"))}</th><th>${esc(t("avAbove"))}</th></tr></thead><tbody>`
+  + AV_SK.map(k=>{
+      const cs={1:0,2:0,3:0}, ct={1:0,2:0,3:0}; let both=0, above=0;
+      rows.forEach(r=>{ const a=avOf(r)[k], p=profOf(r)[k]; if(a) cs[a]++; if(p) ct[p]++; if(a&&p){ both++; if(a>p) above++; } });
+      const c = SKILLS[k].comp;
+      return `<tr><td class="name sk"><span class="tag" style="--c:var(${COMPS[c].c})">${esc(L(COMPS[c]))}</span> ${esc(L(SKILLS[k]))}</td><td>${lvBar(cs)}</td><td>${lvBar(ct)}</td><td>${both?`${above} / ${both}`:"–"}</td></tr>`;
+    }).join("") + `</tbody></table></div>`;
+  // sinais
   const flagged = rows.map(r=>({r,f:flagsOf(r)})).filter(x=>x.f.length);
   if(flagged.length) html += `<h2 style="font-size:1.4rem">${esc(t("flagsTitle"))}</h2><p class="note" style="margin:0">${esc(t("flagsNote"))}</p>
     <div class="comments">${flagged.map(({r,f})=>`<p><strong>${esc(r.nome)}</strong> (${esc(r.serie)}${r.turma?" "+esc(r.turma):""})${f.map(x=>`<span class="flag">${esc(x)}</span>`).join("")}</p>`).join("")}</div>`;
-
-  // tabela por aluno
+  // por aluno
   const stages = [...new Set(rows.map(r=>r.estagio))].sort();
   for(const st of stages){
-    const rs = rows.filter(r=>r.estagio===st), sits = SITS[st];
-    html += `<h2 style="font-size:1.4rem">${esc(t("byStudent"))} · ${st===1?"K4–Y2":"Y3–Y5"}</h2>
-    <div class="legend"><span>${esc(L(COMPS.cog))}…${esc(L(COMPS.int))}: ${esc(t("picks"))}</span><span>✓ / ✗ = ${esc(t("sitTitle").toLowerCase())}</span></div>
-    <div class="tablewrap"><table><thead><tr><th class="name">${esc(t("name"))}</th><th>${esc(t("grade"))}</th>
-      ${CK.map(c=>`<th class="c" style="--c:var(${COMPS[c].c})">${esc(L(COMPS[c]))}</th>`).join("")}
-      ${sits.map(s=>`<th class="c" style="--c:var(${COMPS[SKILLS[s.sk].comp].c})" title="${esc(L(s))}">${esc(L(SKILLS[s.sk]))}</th>`).join("")}
-      <th>${esc(t("strengthsS"))}</th><th>${esc(t("strengthsT"))}</th><th></th></tr></thead><tbody>`
-    + rs.map(r=>{ const p=picks(r), tc=teacherByComp(r), fl=flagsOf(r);
+    const rs = rows.filter(r=>r.estagio===st);
+    html += `<h2 style="font-size:1.4rem">${esc(t("byStudent"))} · ${esc(t("avStage"))} ${st} (${STAGE_LBL[st]})</h2>
+    <div class="legend"><span>${esc(t("avLegend"))}</span></div>
+    <div class="tablewrap"><table class="avt"><thead><tr><th class="name">${esc(t("name"))}</th><th>${esc(t("grade"))}</th>
+      ${AV_SK.map(k=>`<th class="c" style="--c:var(${COMPS[SKILLS[k].comp].c})" title="${esc(L(AV[st].find(x=>x.sk===k)||{pt:"",en:""}))}">${esc(L(SKILLS[k]))}</th>`).join("")}
+      <th>${esc(t("avAboveCol"))}</th><th></th></tr></thead><tbody>`
+    + rs.map(r=>{ const a=avOf(r), p=profOf(r), fl=flagsOf(r); let above=0;
+        const cells = AV_SK.map(k=>{ const s=a[k], q=p[k]; const gap = s&&q&&s>q; if(gap) above++;
+          return `<td class="avc${gap?" gap":""}" title="${esc(L(SKILLS[k]))}">${s?FACES[s-1]:"–"}${q?`<span class="lv l${q}">${esc(t("lvlShort")[q-1])}</span>`:""}</td>`; }).join("");
+        const btns = S.confirmDel===r.id
+          ? `<button class="mini del" data-act="doDel" data-v="${esc(r.id)}">${esc(t("yes"))}</button> <button class="mini" data-act="cancelDel">${esc(t("no"))}</button>`
+          : `<button class="mini ev" data-act="openEval" data-v="${esc(r.id)}">${esc(r.professor?t("reevaluate"):t("evaluate"))}</button> <button class="mini del" data-act="askDel" data-v="${esc(r.id)}">${esc(t("del"))}</button>`;
         return `<tr><td class="name">${esc(r.nome)}${fl.length?`<span class="flag" title="${esc(fl.join(", "))}">⚑</span>`:""}</td><td>${esc(r.serie)}${r.turma?" "+esc(r.turma):""}</td>
-        ${CK.map(c=>`<td class="h${p[c]>=4?3:p[c]>=3?2:p[c]>=1?1:0}">${p[c]}</td>`).join("")}
-        ${sits.map(s=>{const a=r.itens?.[s.id]; return a?`<td class="${a.correto?"ok":"no"}">${a.correto?"✓":"✗"}</td>`:`<td>–</td>`;}).join("")}
-        <td class="str">${top2(p).map(tag).join("")}</td><td class="str">${tc?top2(tc).map(tag).join(""):"–"}</td>
-        <td>${S.confirmDel===r.id?`<button class="mini del" data-act="doDel" data-v="${esc(r.id)}">${esc(t("yes"))}</button> <button class="mini" data-act="cancelDel">${esc(t("no"))}</button>`:`<button class="mini ev" data-act="openEval" data-v="${esc(r.id)}">${esc(r.professor?t("reevaluate"):t("evaluate"))}</button> <button class="mini del" data-act="askDel" data-v="${esc(r.id)}">${esc(t("del"))}</button>`}</td></tr>`;}).join("")
+        ${cells}<td>${r.professor?above:`<span class="note">${esc(t("avNotYet"))}</span>`}</td><td>${btns}</td></tr>`; }).join("")
     + `</tbody></table></div>`;
   }
-  const opens = rows.filter(r=>r.aberta);
-  if(opens.length) html += `<h2 style="font-size:1.4rem">${esc(t("open"))}</h2><div class="comments">${opens.map(r=>`<p><strong>${esc(r.nome)}</strong> (${esc(r.serie)}): ${esc(r.aberta)}</p>`).join("")}</div>`;
   return html;
 }
 
@@ -1163,7 +1337,7 @@ function renderSaber(rows){
   const stages = [...new Set(rows.map(r=>r.estagio))].sort();
   for(const st of stages){
     const rs = rows.filter(r=>r.estagio===st), its = ITEMS.saber[st].filter(it=>it.t==="ident" && rs.some(r=>r.itens?.[it.id]));
-    html += `<h2 style="font-size:1.4rem">${esc(t("byStudent"))} · ${st===1?"K4–Y2":"Y3–Y5"}</h2>
+    html += `<h2 style="font-size:1.4rem">${esc(t("byStudent"))} · ${STAGE_LBL[st]}</h2>
     <div class="legend"><span>${esc(t("identNote"))}</span></div>
     <div class="tablewrap"><table><thead><tr><th class="name">${esc(t("name"))}</th><th>${esc(t("grade"))}</th><th>${esc(t("seenCol"))}</th><th>${esc(t("knowsCol"))}</th><th>${esc(t("score"))}</th>
       ${its.map(it=>`<th class="c" style="--c:var(${COMPS[ansComp(st,it.ans)].c})" title="${esc(L(it)+" — Quadro iSP: "+(it.ref||""))}">${esc(ansLabel(st,it.ans))}</th>`).join("")}<th></th></tr></thead><tbody>`
@@ -1178,8 +1352,8 @@ function renderSaber(rows){
 }
 
 /* ---------- editor de perguntas ---------- */
-const EDSECS = ["a1s1","a1s2","a2s1","a2s2"];
-function openEditor(){ if(!S.ed || !S.edDirty) S.ed = snapshotContent(); S.edSec = EDSECS.includes(S.edSec) ? S.edSec : "a1s1"; S.edMsg=""; S.edConfirmReset=false; loadHistory(); }
+const EDSECS = ["av1","av2","av3","av4","a2s1","a2s2"];
+function openEditor(){ if(!S.ed || !S.edDirty) S.ed = snapshotContent(); S.edSec = EDSECS.includes(S.edSec) ? S.edSec : "av1"; S.edMsg=""; S.edConfirmReset=false; loadHistory(); }
 async function loadHistory(){ try{ const j = await api("contentHistory",{},painelCode); S.edHist = j.versoes||[]; if(S.panelTest==="edit") render(); }catch(e){} }
 function edGet(path){ return path.split(".").reduce((o,k)=>o==null?undefined:o[k], S.ed); }
 function edSet(path, val){ const ks=path.split("."); const last=ks.pop(); const o=ks.reduce((o,k)=>o[k], S.ed); o[last]=val; }
@@ -1210,11 +1384,8 @@ function edDelete(ref){
 function edProblems(){
   const p = [], E = S.ed, secs = t("edSecs");
   const need = (o, where) => { if(!String(o?.pt||"").trim()) p.push(where); };
-  for(const st of [1,2]){
-    const lbl = secs[st===1?"a1s1":"a1s2"];
-    for(const k of CK) E.stm[st][k].forEach(x=>need(x, lbl+": "+t("edEmptyAnswer")));
-    E.sits[st].forEach((x,i)=>{ need(x, lbl+": "+t("edEmptyQuestion")); x.o.forEach(o=>need(o, lbl+": "+t("edEmptyAnswer"))); if(x.o.filter(o=>o.ok).length!==1) p.push(lbl+": "+t("edNeedOk")); });
-  }
+  for(const st of [1,2,3,4]) E.av[st].forEach((x,i)=>{ const lbl = secs["av"+st]+" "+(i+1)+": "; need(x, lbl+t("edEmptyQuestion")); need(x.prof, lbl+t("edEmptyAnswer")); });
+  for(const k of ["introAv","avNo","avSome","avYes"]) need(E.msgs[k], secs.av1+": "+t("edEmptyAnswer"));
   for(const [w,sec] of [["id1","a2s1"],["id2","a2s2"]]) E[w].forEach((x,i)=>{ need(x, secs[sec]+" "+(i+1)+": "+t("edEmptyQuestion")); if(new Set(x.o).size!==3) p.push(secs[sec]+" "+(i+1)+": "+t("edDup")); });
   for(const k of CK) need(E.names.comps[k], t("edEmptyName")+" "+DEFAULT_CONTENT.names.comps[k].pt);
   for(const k of Object.keys(SKILLS)) need(E.names.skills[k], t("edEmptyName")+" "+DEFAULT_CONTENT.names.skills[k].pt);
@@ -1263,34 +1434,22 @@ const qBlock = (num, path, extraHead="", ph="") => `<div class="qa-q"><div class
 const aTable = (rows, firstCol) => `<div class="qa-t"><div class="qa-tr qa-th"><span>${esc(firstCol)}</span><span>${esc(t("edAnswer"))} · PT</span><span>${esc(t("edAnswer"))} · EN</span></div>
   ${rows.map(r=>`<div class="qa-tr ${r.cls||""}"><span class="qa-lead">${r.lead}</span><span>${r.ptHtml||fIn(r.pt,"",!!r.shared,r.shared?1:2)}</span><span>${r.enHtml||fIn(r.en,"",!!r.shared,r.shared?1:2)}</span></div>`).join("")}</div>`;
 const okRadio = (name, path, j, on) => `<label class="qa-ok"><input type="radio" name="${name}" value="${j}" data-edc="${path}" data-kind="ok" ${on?"checked":""}> ${esc(t("edRightShort"))}</label>`;
-/* ordem real em que o aluno vê as perguntas da autoavaliação */
-function autoOrder(st){
-  const used = {cog:0,glo:0,dig:0,aut:0,int:0};
-  const tri = TRIADS.map((cs,k)=>({t:"forca",k,o:cs.map(c=>({c,i:used[c]++}))}));
-  const sits = S.ed.sits[st].map((_,i)=>({t:"cena",i}));
-  const out = []; const gap = Math.ceil(tri.length/(sits.length+1));
-  tri.forEach((it,k)=>{ out.push(it); if((k+1)%gap===0 && sits.length) out.push(sits.shift()); });
-  return out.concat(sits);
-}
-function edAutoSection(st){
-  const E = S.ed; let n = 0;
-  let h = `<div class="qa qa-shared"><div class="qa-q"><div class="qa-num">★</div><div class="qa-qfields">
-      <label><span>${esc(t("edForcaQ"))} · PT</span>${fIn(`msgs.qForca${st}.pt`)}</label><label><span>${esc(t("edForcaQ"))} · EN</span>${fIn(`msgs.qForca${st}.en`)}</label></div></div>
-      <p class="note" style="margin:0">${esc(t("edForcaNote"))}</p></div>`;
-  for(const it of autoOrder(st)){
-    n++;
-    if(it.t==="forca"){
-      h += `<div class="qa"><div class="qa-q"><div class="qa-num">${n}</div><div class="qa-qtext">${esc(L({pt:E.msgs["qForca"+st].pt,en:E.msgs["qForca"+st].en}))}</div></div>
-        ${aTable(it.o.map(({c,i})=>{ const sk = E.stm[st][c][i].sk; return {lead:`<span class="tag" style="--c:var(${COMPS[c].c})">${esc(E.names.comps[c].pt)}</span><small>${esc(E.names.skills[sk].pt)}</small>`, pt:`stm.${st}.${c}.${i}.pt`, en:`stm.${st}.${c}.${i}.en`}; }), t("edCompSkill"))}</div>`;
-    } else {
-      const x = E.sits[st][it.i], base = `sits.${st}.${it.i}`;
-      h += `<div class="qa">${qBlock(n, base, `<label class="qa-side"><span>${esc(t("edSkill"))}</span><select data-edc="${base}.sk" data-kind="sk">${skillOpts(x.sk)}</select></label>`)}
-        ${aTable(x.o.map((o,j)=>({lead:okRadio("ok-"+base, base+".o", j, o.ok), pt:`${base}.o.${j}.pt`, en:`${base}.o.${j}.en`, cls:o.ok?"qa-right":""})), t("edExpectedShort"))}</div>`;
-    }
-  }
-  if(st===2){ n++; h += `<div class="qa">${qBlock(n, "open")}<p class="note" style="margin:0">${esc(t("edOpenNote"))}</p></div>`; }
+/* avaliação do avanço: frase do aluno em cima; embaixo, o que o professor observa (Dominando) */
+function edAvSection(st){
+  const E = S.ed;
+  let h = `<p class="note" style="margin:0">${esc(t("edAvNote"))}</p>
+    <div class="qa qa-shared"><div class="qa-q"><div class="qa-num">★</div><div class="qa-qfields">
+      <label><span>${esc(t("edAvIntro"))} · PT</span>${fIn("msgs.introAv.pt","",false,3)}</label><label><span>${esc(t("edAvIntro"))} · EN</span>${fIn("msgs.introAv.en","",false,3)}</label></div></div>
+      ${aTable(["avNo","avSome","avYes"].map((k,j)=>({lead:`<span class="qa-role">${FACES[j]} = ${esc(T.pt.lvl[j])}</span>`, pt:`msgs.${k}.pt`, en:`msgs.${k}.en`, shared:true})), t("edMeaning"))}
+      <p class="note" style="margin:0">${esc(t("edAvShared"))}</p></div>`;
+  E.av[st].forEach((x,i)=>{
+    const c = SKILLS[x.sk].comp, base = `av.${st}.${i}`;
+    h += `<div class="qa">${qBlock(String(i+1), base, `<div class="qa-side"><span class="tag" style="--c:var(${COMPS[c].c})">${esc(E.names.comps[c].pt)}</span><small>${esc(E.names.skills[x.sk].pt)}</small></div>`)}
+      ${aTable([{lead:`<span class="qa-role ok">${esc(t("edAvProf"))}</span>`, pt:`${base}.prof.pt`, en:`${base}.prof.en`}], t("edRole"))}</div>`;
+  });
   return h;
 }
+
 function edWheel(st){
   const E = S.ed;
   return `<div class="qa">${qBlock("1", `wheel.${st}.0`)}${aTable(E.wheel[st][0].o.map((o,j)=>({lead:esc(t("seen")[2-j]), pt:`wheel.${st}.0.o.${j}.pt`, en:`wheel.${st}.0.o.${j}.en`})), t("edMeaning"))}</div>
@@ -1328,8 +1487,7 @@ function renderEditor(){
     <p class="note" style="margin:0">${esc(t("edIntro"))}</p>
     <div class="edsecs">${EDSECS.map(k=>`<button data-act="edSec" data-v="${k}" aria-pressed="${sec===k}">${esc(secs[k])}</button>`).join("")}</div></div>`;
   if(S.edLeave) h += `<div class="exitbar"><span>${esc(t("edLeaveAsk"))}</span><span class="exitbar-btns"><button class="btn small" data-act="edLeaveYes">${esc(t("edLeaveYes"))}</button><button class="btn ghost" data-act="edLeaveNo">${esc(t("edLeaveNo"))}</button></span></div>`;
-  if(sec==="a1s1") h += edAutoSection(1);
-  if(sec==="a1s2") h += edAutoSection(2);
+  if(/^av[1-4]$/.test(sec)) h += edAvSection(+sec.slice(2));
   if(sec==="a2s1"){
     h += `<p class="note">${esc(t("edId1Note"))}</p>` + edWheel(1);
     E.id1.forEach((_,i)=>{ h += edIdent("id1", i, String(i+3)); });
@@ -1365,7 +1523,7 @@ app.addEventListener("click", async e=>{
   const a = b.dataset.act, v = b.dataset.v;
   if(a==="lang"){ S.lang=v; savePrefs(); render(); if(S.screen==="quiz"||S.screen==="intro") speakCurrent(); }
   else if(a==="grade"){ S.grade=v; savePrefs(); render(); }
-  else if(a==="test"){ S.test=v; savePrefs(); render(); }
+  else if(a==="test"){ S.test=v; if(S.grade && !gradesFor(v).includes(S.grade)) S.grade=""; savePrefs(); render(); }
   else if(a==="ptab"){ if(S.panelTest==="edit" && v!=="edit" && S.edDirty && !S.edLeave){ S.edLeave=v; render(); return; }
     S.edLeave=null; S.panelTest=v; S.evalId=null; S.confirmDel=null; if(v==="edit") openEditor(); render(); }
   else if(a==="edLeaveYes"){ const v2=S.edLeave; S.edLeave=null; S.edDirty=false; S.panelTest=v2; render(); }
@@ -1381,7 +1539,7 @@ app.addEventListener("click", async e=>{
   else if(a==="edDelNo"){ S.edDel=null; render(); }
   else if(a==="edDelYes"){ edDelete(v); }
   else if(a==="edLoadVer"){ edLoadVersion(v); }
-  else if(a==="edPreview"){ S.panelTest="auto"; goStart(); }
+  else if(a==="edPreview"){ S.panelTest="avanco"; goStart(); }
   else if(a==="start"){
     if(pendingContent!==undefined) useContentNow();
     S.idx=0; S.answers={}; S.times={}; S.openText=""; S.perm={}; S.first={}; S.tried={}; S.solved={}; S.fb=null;
@@ -1476,18 +1634,15 @@ function baixar(nome, texto){
 async function exportCsv(){
   if(S.panelTest==="saber") return exportCsvSaber();
   const rows = filtered();
-  const lv = ["","Iniciando","Desenvolvendo","Dominando"];
-  const sits = [...SITS[1],...SITS[2]];
+  const lv = ["","Iniciando","Desenvolvendo","Dominando"], face = ["","Ainda não (Iniciando)","Às vezes (Desenvolvendo)","Sim (Dominando)"];
   const head = ["nome","serie","turma","estagio","data","duracao_seg","sinais",
-    ...CK.map(c=>"escolhas "+COMPS[c].pt+" (0-6)"),"forcas_aluno","forcas_professor",
-    ...sits.map(s=>s.id+" ("+SKILLS[s.sk].pt+")"),
-    ...Object.keys(SKILLS).map(k=>"professor: "+SKILLS[k].pt),"resposta_aberta"];
+    ...AV_SK.map(k=>"aluno: "+SKILLS[k].pt), ...AV_SK.map(k=>"professor: "+SKILLS[k].pt),"habilidades em que o aluno se vê acima do professor"];
   const q = s => '"'+String(s??"").replace(/"/g,'""')+'"';
-  const lines = [head.map(q).join(";")].concat(rows.map(r=>{ const p=picks(r), tc=teacherByComp(r); return [r.nome,r.serie,r.turma,r.estagio,new Date(r.data).toLocaleDateString("pt-BR"),r.duracaoSeg??"",flagsOf(r).join(", "),
-    ...CK.map(c=>p[c]), top2(p).map(c=>COMPS[c].pt).join(", "), tc?top2(tc).map(c=>COMPS[c].pt).join(", "):"",
-    ...sits.map(s=>{const a=r.itens?.[s.id]; return a?(a.correto?"escolheu a opção mais completa":"outra opção"):"";}),
-    ...Object.keys(SKILLS).map(k=>lv[r.professor?.[k]||0]), r.aberta].map(q).join(";"); }));
-  baixar("life-competencies-autoavaliacao.csv", lines.join("\n"));
+  const lines = [head.map(q).join(";")].concat(rows.map(r=>{ const a=avOf(r), p=profOf(r);
+    const above = AV_SK.filter(k=>a[k]&&p[k]&&a[k]>p[k]).map(k=>SKILLS[k].pt).join(", ");
+    return [r.nome,r.serie,r.turma,r.estagio,new Date(r.data).toLocaleDateString("pt-BR"),r.duracaoSeg??"",flagsOf(r).join(", "),
+      ...AV_SK.map(k=>face[a[k]||0]), ...AV_SK.map(k=>lv[p[k]||0]), above].map(q).join(";"); }));
+  baixar("life-competencies-avanco-dos-alunos.csv", lines.join("\n"));
 }
 
 async function exportCsvSaber(){
