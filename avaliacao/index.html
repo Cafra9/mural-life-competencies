@@ -311,6 +311,10 @@ table.avstu td:not(.name),table.avstu th:not(.name){width:30%}
 .stuhead h3{font-size:1.25rem}
 .stubtns{display:flex;gap:6px;flex-wrap:wrap}
 .stubtns .btn.small{font-size:.85rem;padding:6px 12px}
+
+.compbtn{border-color:var(--c)!important;color:var(--c)}
+.compbtn[aria-pressed="true"]{background:var(--c)!important;border-color:var(--c)!important;color:#fff!important}
+.card.q.avq{border-top:10px solid var(--c,var(--line));padding-top:28px}
 </style>
 
 </head>
@@ -1080,7 +1084,7 @@ function renderStart(){
     ${S.test==="avanco"?`<div class="field"><span class="lbl">${esc(t("stageLbl"))}</span>
       <div class="ptabs" role="tablist">${[1,2,3,4].map(n=>`<button role="tab" data-act="avSt" data-v="${n}" aria-selected="${S.avSt===n}">${esc(t("stageLbl"))} ${n} · ${STAGE_LBL[n]}</button>`).join("")}</div></div>`:""}
     ${S.test==="avanco"?`<div class="field"><span class="lbl">${esc(t("compLbl"))}</span>
-      <div class="grades">${CK.map(c=>`<button data-act="comp" data-v="${c}" aria-pressed="${S.comp===c}">${ICOMP[c]} ${esc(L(COMPS[c]))}</button>`).join("")}</div></div>`:""}
+      <div class="grades">${CK.map(c=>`<button class="compbtn" style="--c:var(${COMPS[c].c})" data-act="comp" data-v="${c}" aria-pressed="${S.comp===c}">${esc(L(COMPS[c]))}</button>`).join("")}</div></div>`:""}
     <div class="field"><span class="lbl">${esc(t("grade"))}</span>
       <div class="grades">${gradesFor(S.test).map(g=>`<button data-act="grade" data-v="${g}" aria-pressed="${S.grade===g}">${g}</button>`).join("")}</div></div>
     ${st?`<div class="stagehint">${esc(t("s"+st+(S.test==="saber"?"saber":"av")))}</div>`:""}
@@ -1116,15 +1120,15 @@ function renderQuiz(){
   }
   const it = items[S.idx], order = S.perm[it.id], sel = S.answers[it.id];
   return header() + `<div class="progress">${dots}</div>
-  <section class="card q">
+  <section class="card q${["avanco","desafio","treino"].includes(it.t)?" avq":""}"${["avanco","desafio"].includes(it.t)?` style="--c:var(${COMPS[SKILLS[it.sk].comp].c})"`:""}>
     <div class="chips">${it.t==="ident" ? ""
       : it.t==="roda" ? ""
       : it.t==="treino" ? `<span class="chip" style="--c:var(--muted)">${esc(t("treinoChip"))}</span>`
-      : it.t==="desafio" ? `<span class="chip" style="--c:var(--flag)">🚀 ${esc(t("desafioChip"))} ${it.est} · ${esc(skName(it.sk))}</span>`
+      : it.t==="desafio" ? `<span class="chip" style="--c:var(${COMPS[SKILLS[it.sk].comp].c})">${esc(t("desafioChip"))} ${it.est} · ${esc(skName(it.sk))}</span>`
       : (it.t==="cena" || it.t==="avanco")
       ? (()=>{const sk=SKILLS[it.sk], c=COMPS[sk.comp]; return `<span class="chip" style="--c:var(${c.c})">${esc(compName(sk.comp))} · ${esc(skName(it.sk))}</span>`;})()
       : ""}</div>
-    ${it.t==="roda" ? `<img class="wheelimg" src="${WHEEL_IMG}" alt="${esc(t("wheelAlt"))}">` : it.t==="ident" ? "" : `<div class="scene" aria-hidden="true">${it.i}</div>`}
+    ${it.t==="roda" ? `<img class="wheelimg" src="${WHEEL_IMG}" alt="${esc(t("wheelAlt"))}">` : (it.t==="ident" || ["avanco","desafio","treino"].includes(it.t)) ? "" : `<div class="scene" aria-hidden="true">${it.i}</div>`}
     <div class="qrow"><h2 class="qtext">${esc(qText(it))}</h2>${audioBtns()}</div>
         <div class="opts${order.length===2?" two":""}${(it.t==="avanco"||it.t==="desafio")&&!avPic()?" stack":""}${avPic()?" avpic":""}" role="group">${order.map((k,pos)=>`<button class="opt${S.reading===pos?" reading":""}${(S.tried[it.id]||[]).includes(k)?" tried":""}" data-act="answer" data-v="${k}" data-pos="${pos}" aria-pressed="${sel===k}" ${(S.tried[it.id]||[]).includes(k)?"disabled":""} aria-label="${esc((pics()?"":POSNAME[S.lang][pos]+": ")+optText(it,k))}"><span class="dot${pics()?" pic":""}" aria-hidden="true">${pics()?optIcon(it,k):POSNAME[S.lang][pos]}</span><span class="t">${esc(optText(it,k))}</span>${it.t==="forca"?(()=>{const sk=SKILLS[it.o[k].sk], c=COMPS[it.o[k].comp]; return `<span class="sktag" style="--c:var(${c.c})">${esc(compName(it.o[k].comp))} · ${esc(skName(it.o[k].sk))}</span>`;})():""}</button>`).join("")}</div>
     ${it.t==="ident" && S.solved[it.id] ? `<div class="fb ok" role="status"><span aria-hidden="true">🎉</span>${esc(fbOkText(it))}</div>`
